@@ -2275,7 +2275,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text
 <script>
 /* ---- SUPABASE INIT ---- */
 const SUPABASE_URL = 'https://yqnzdzikvtoknchpkkvl.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_p-MNCebD4iaG1Bknz7ep6g_27LuiFGc';
+const SUPABASE_ANON_KEY = 'PASTE_YOUR_ANON_KEY_HERE';
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const EDGE_URL = SUPABASE_URL + '/functions/v1/ai-proxy';
 
@@ -2399,6 +2399,8 @@ function goTo(pageId){
   document.getElementById(pageId).classList.add('active');
   window.scrollTo(0,0);
   updateNav(pageId);
+  if(pageId==='page-metrics') setTimeout(loadStudentMetrics,200);
+  if(pageId==='page-teacher-dash') setTimeout(()=>renderStudentTable(),200);
 }
 
 function updateNav(pageId){
@@ -2821,6 +2823,7 @@ async function endSession(){
     }catch(e){console.log('Session save error:',e.message);}
   }
   goTo('page-report');
+  setTimeout(loadStudentReport, 300);
 }
 
 /* ---- CHAT MESSAGES ---- */
@@ -3008,24 +3011,246 @@ function switchLbTab(el){
 }
 
 /* ---- STUDENT TABLE ---- */
-function renderStudentTable(filter=''){
+async function renderStudentTable(filter=''){
   const table=document.getElementById('student-table');
   if(!table)return;
   const head=table.querySelector('.t-head');
   table.innerHTML='';
   table.appendChild(head);
-  STUDENT_DATA.filter(s=>s.name.toLowerCase().includes(filter.toLowerCase())).forEach(s=>{
-    const scoreChip=s.score!=null?`<span class="score-chip ${s.score>=80?'chip-high':s.score>=65?'chip-mid':'chip-low'}">${s.score}</span>`:`<span class="score-chip chip-low">—</span>`;
-    const trend=s.trendDir==='up'?`<span class="trend-up"><i class="ti ti-trending-up"></i> ${s.trend}</span>`:s.trendDir==='down'?`<span class="trend-dn"><i class="ti ti-trending-down"></i> ${s.trend}</span>`:`<span class="trend-fl">—</span>`;
-    const flagDot=s.flag==='alert'?'<div class="flag-dot flag-red"></div>':s.flag==='warn'?'<div class="flag-dot flag-amber"></div>':'<div class="flag-dot flag-green"></div>';
-    const weakTag=s.weakness==='Strong overall'?`<span class="tag tag-green">${s.weakness}</span>`:s.weakness==='No attempts'?`<span class="tag tag-red">${s.weakness}</span>`:`<span class="tag tag-gold">${s.weakness}</span>`;
-    const row=document.createElement('div');
-    row.className='t-row'+(s.flag==='alert'?' flagged-row':'');
-    row.innerHTML=`<div>${flagDot}</div><div class="s-name-cell"><div class="s-avatar" style="background:${s.bg};color:${s.fg}">${s.init}</div>${s.name}</div><div>${s.sessions}</div><div>${scoreChip}</div><div>${trend}</div><div class="time-cell">${s.time}</div><div>${weakTag}</div><div><button class="btn-sm" onclick="goTo('page-student-detail')">View</button></div>`;
-    table.appendChild(row);
-  });
+
+  // Show loading
+  const loading=document.createElement('div');
+  loading.style.cssText='padding:20px;text-align:center;color:var(--text-3);font-size:13px;';
+  loading.textContent='Loading students...';
+  table.appendChild(loading);
+
+  try{
+    // Get all students in this class
+    const {data:students,error}=await supabase
+      .from('profiles')
+      .select('*')
+      .eq('role','student')
+      .eq('class_code', APP.profile?.class_code||'SALES24')
+      .ilike('full_name', filter?`%${filter}%`:'%');
+
+    if(error) throw error;
+
+    // Get sessions for each student
+    const {data:sessions}=await supabase
+      .from('sessions')
+      .select('*')
+      .in('student_id', students.map(s=>s.id));
+
+    table.innerHTML='';
+    table.appendChild(head);
+
+    if(!students.length){
+      const empty=document.createElement('div');
+      empty.style.cssText='padding:24px;text-align:center;color:var(--text-3);font-size:13px;';
+      empty.textContent='No students enrolled yet. Share class code SALES24 with your students.';
+      table.appendChild(empty);
+      return;
+    }
+
+    // Update class stats
+    const totalSessions=sessions?.length||0;
+    const avgScore=sessions?.length?Math.round(sessions.filter(s=>s.overall_score).reduce((a,b)=>a+(b.overall_score||0),0)/sessions.filter(s=>s.overall_score).length)||0:0;
+    const needHelp=students.filter(s=>{
+      const sSessions=sessions?.filter(ss=>ss.student_id===s.id)||[];
+      return sSessions.length===0||(s.last_practice_date&&(new Date()-new Date(s.last_practice_date))>7*24*60*60*1000);
+    }).length;
+
+    // Update stat cards
+    const statCards=document.querySelectorAll('#page-teacher-dash .sc-val');
+    if(statCards[0]) statCards[0].textContent=students.length;
+    if(statCards[2]) statCards[2].textContent=avgScore||'—';
+    if(statCards[4]) statCards[4].textContent=needHelp;
+
+    const COLORS=[
+      {bg:'#DBEAFE',fg:'#1D4ED8'},{bg:'#D1FAE5',fg:'#065F46'},
+      {bg:'#EDE9FE',fg:'#5B21B6'},{bg:'#FEF3C7',fg:'#92400E'},
+      {bg:'#FCE7F3',fg:'#9D174D'},{bg:'#FEE2E2',fg:'#991B1B'},
+      {bg:'#ECFDF5',fg:'#065F46'},{bg:'#FFF7ED',fg:'#C2410C'},
+    ];
+
+    students.forEach((student,i)=>{
+      const sSessions=sessions?.filter(ss=>ss.student_id===student.id)||[];
+      const scores=sSessions.filter(ss=>ss.overall_score).map(ss=>ss.overall_score);
+      const bestScore=scores.length?Math.max(...scores):null;
+      const sessionCount=sSessions.length;
+      const totalTime=student.total_practice_time||0;
+      const timeStr=totalTime>3600?Math.floor(totalTime/3600)+'h '+Math.floor((totalTime%3600)/60)+'m':Math.floor(totalTime/60)+'m '+totalTime%60+'s';
+
+      // Calculate trend
+      let trendHtml='<span class="trend-fl">—</span>';
+      if(scores.length>=2){
+        const diff=scores[scores.length-1]-scores[scores.length-2];
+        trendHtml=diff>0?`<span class="trend-up"><i class="ti ti-trending-up"></i> +${diff}</span>`:
+                  diff<0?`<span class="trend-dn"><i class="ti ti-trending-down"></i> ${diff}</span>`:
+                  '<span class="trend-fl">→ same</span>';
+      }
+
+      // Find weakness
+      let weakness='No attempts';
+      let weakTag='<span class="tag tag-red">No attempts</span>';
+      let flagDot='<div class="flag-dot flag-red"></div>';
+
+      if(sSessions.length>0){
+        const avgSkills={
+          rapport:avg(sSessions,'rapport'),
+          clarity:avg(sSessions,'clarity'),
+          confidence:avg(sSessions,'confidence'),
+          close:avg(sSessions,'close_score'),
+          discovery:avg(sSessions,'discovery'),
+          value_prop:avg(sSessions,'value_prop'),
+          objections:avg(sSessions,'objections'),
+          listening:avg(sSessions,'listening'),
+        };
+        const lowestSkill=Object.entries(avgSkills).filter(([k,v])=>v>0).sort((a,b)=>a[1]-b[1])[0];
+        const skillNames={rapport:'Rapport',clarity:'Clarity',confidence:'Confidence',close:'Closing',discovery:'Discovery',value_prop:'Value prop',objections:'Objections',listening:'Listening'};
+        weakness=lowestSkill?skillNames[lowestSkill[0]]:'Improving';
+        const daysSince=student.last_practice_date?(new Date()-new Date(student.last_practice_date))/(1000*60*60*24):99;
+        if(daysSince>7){flagDot='<div class="flag-dot flag-red"></div>';weakTag=`<span class="tag tag-red">Inactive ${Math.floor(daysSince)}d</span>`;}
+        else if(bestScore&&bestScore<60){flagDot='<div class="flag-dot flag-amber"></div>';weakTag=`<span class="tag tag-gold">${weakness}</span>`;}
+        else if(bestScore&&bestScore>=80){flagDot='<div class="flag-dot flag-green"></div>';weakTag='<span class="tag tag-green">Strong</span>';}
+        else{flagDot='<div class="flag-dot flag-amber"></div>';weakTag=`<span class="tag tag-gold">${weakness}</span>`;}
+      }
+
+      const scoreChip=bestScore!=null?`<span class="score-chip ${bestScore>=80?'chip-high':bestScore>=65?'chip-mid':'chip-low'}">${bestScore}</span>`:`<span class="score-chip chip-low">—</span>`;
+      const color=COLORS[i%COLORS.length];
+      const initials=(student.full_name||student.email).split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
+      const name=student.full_name||student.email;
+
+      const row=document.createElement('div');
+      row.className='t-row'+(sessionCount===0?' flagged-row':'');
+      row.innerHTML=`
+        <div>${flagDot}</div>
+        <div class="s-name-cell"><div class="s-avatar" style="background:${color.bg};color:${color.fg}">${initials}</div>${name}</div>
+        <div>${sessionCount}</div>
+        <div>${scoreChip}</div>
+        <div>${trendHtml}</div>
+        <div class="time-cell">${timeStr}</div>
+        <div>${weakTag}</div>
+        <div><button class="btn-sm" onclick="viewStudent('${student.id}','${name}')">View</button></div>`;
+      table.appendChild(row);
+    });
+
+  }catch(e){
+    table.innerHTML='';
+    table.appendChild(head);
+    const err=document.createElement('div');
+    err.style.cssText='padding:20px;text-align:center;color:var(--red);font-size:13px;';
+    err.textContent='Error loading students: '+e.message;
+    table.appendChild(err);
+  }
 }
+
+function avg(sessions, field){
+  const vals=sessions.filter(s=>s[field]!=null).map(s=>s[field]);
+  return vals.length?Math.round(vals.reduce((a,b)=>a+b,0)/vals.length):0;
+}
+
 function filterStudents(val){renderStudentTable(val);}
+
+let selectedStudentId=null;
+let selectedStudentName=null;
+
+async function viewStudent(id, name){
+  selectedStudentId=id;
+  selectedStudentName=name;
+  await loadStudentDetail(id, name);
+  goTo('page-student-detail');
+}
+
+async function loadStudentDetail(id, name){
+  // Update hero
+  const initials=name.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
+  const heroAvatar=document.querySelector('#page-student-detail .detail-avatar-lg');
+  if(heroAvatar) heroAvatar.textContent=initials;
+  const heroName=document.querySelector('#page-student-detail .detail-name');
+  if(heroName) heroName.textContent=name;
+
+  // Get sessions
+  const {data:sessions}=await supabase.from('sessions').select('*').eq('student_id',id).order('created_at',{ascending:false});
+  const {data:profile}=await supabase.from('profiles').select('*').eq('id',id).single();
+
+  if(!sessions) return;
+
+  const scores=sessions.filter(s=>s.overall_score).map(s=>s.overall_score);
+  const bestScore=scores.length?Math.max(...scores):null;
+  const totalTime=profile?.total_practice_time||0;
+  const timeStr=Math.floor(totalTime/3600)+'h '+Math.floor((totalTime%3600)/60)+'m';
+
+  // Update detail stats
+  const detailStats=document.querySelectorAll('#page-student-detail .detail-stat-num');
+  if(detailStats[0]) detailStats[0].textContent=bestScore||'—';
+  if(detailStats[1]) detailStats[1].textContent=sessions.length;
+  if(detailStats[2]) detailStats[2].textContent=timeStr;
+
+  // Update attempt timeline
+  const timeline=document.querySelector('#page-student-detail .attempt-timeline');
+  if(timeline){
+    timeline.innerHTML='';
+    sessions.slice(0,5).forEach((session,i)=>{
+      const date=new Date(session.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+      const duration=session.duration_seconds?Math.floor(session.duration_seconds/60)+'m '+session.duration_seconds%60+'s':'—';
+      const isBest=session.overall_score===bestScore;
+      const div=document.createElement('div');
+      div.className='at-row';
+      div.innerHTML=`
+        <div class="at-left"><div class="at-dot ${isBest?'best-dot':''}"></div>${i<sessions.length-1?'<div class="at-line"></div>':''}</div>
+        <div class="at-body">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+            <div style="font-size:13px;font-weight:700;">${session.scenario} · Attempt ${sessions.length-i} ${isBest?'<span class="tag tag-gold" style="margin-left:6px;">Best</span>':''}</div>
+            <div style="font-size:11px;color:var(--text-3);">${date} · ${duration}</div>
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;">
+            <span style="font-size:11px;background:var(--surface);padding:2px 7px;border-radius:5px;">Score: ${session.overall_score||'—'}</span>
+            <span style="font-size:11px;background:var(--surface);padding:2px 7px;border-radius:5px;">Rapport: ${session.rapport||'—'}</span>
+            <span style="font-size:11px;background:var(--surface);padding:2px 7px;border-radius:5px;">Fillers: ${session.filler_words||0}</span>
+            <span style="font-size:11px;background:var(--surface);padding:2px 7px;border-radius:5px;">WPM: ${session.wpm||'—'}</span>
+          </div>
+          <button class="btn-sm" onclick="viewSessionPlayback('${session.id}')"><i class="ti ti-player-play"></i> View</button>
+        </div>`;
+      timeline.appendChild(div);
+    });
+  }
+}
+
+async function viewSessionPlayback(sessionId){
+  const {data:session}=await supabase.from('sessions').select('*').eq('id',sessionId).single();
+  if(!session) return;
+
+  // Populate playback page
+  const transcript=document.querySelector('#page-playback .transcript-scroll');
+  if(transcript&&session.transcript){
+    transcript.innerHTML='';
+    session.transcript.forEach(entry=>{
+      const div=document.createElement('div');
+      div.className='tr-entry';
+      const mins=Math.floor((entry.timestamp||0)/60);
+      const secs=(entry.timestamp||0)%60;
+      const timeStr=mins+':'+(secs<10?'0':'')+secs;
+      div.innerHTML=`
+        <div class="tr-who ${entry.role==='student'?'tr-student':'tr-char'}">${entry.role==='student'?selectedStudentName:'Customer'} <span class="tr-time-stamp">${timeStr}</span></div>
+        <div class="tr-text">${entry.text}</div>`;
+      transcript.appendChild(div);
+    });
+  }
+
+  // Update session info bar
+  const infoBar=document.querySelector('#page-playback > .wrap > div:nth-child(2)');
+  if(infoBar){
+    const date=new Date(session.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+    infoBar.innerHTML=`
+      <div style="font-size:13px;font-weight:700;color:var(--navy);">${selectedStudentName} — ${session.scenario}</div>
+      <span class="tag tag-gold">Score: ${session.overall_score||'—'}/100</span>
+      <span class="tag tag-gray">${date}</span>
+      <span class="tag tag-navy">${session.character_id} · ${session.difficulty}</span>`;
+  }
+
+  goTo('page-playback');
+}
 
 /* ---- COMPETITION COUNTDOWN ---- */
 function startCountdown(){
@@ -3481,6 +3706,154 @@ async function handleModalRecordingStop(){
     if(t)document.getElementById('modal-input').value=t;
   }catch(e){toast('Transcription failed.');}
   document.getElementById('modal-mic-icon').className='ti ti-microphone';
+}
+
+/* ---- REAL DATA LOADERS ---- */
+async function loadStudentMetrics(){
+  if(!APP.user) return;
+  try{
+    const {data:sessions}=await supabase
+      .from('sessions')
+      .select('*')
+      .eq('student_id',APP.user.id)
+      .order('created_at',{ascending:true});
+
+    if(!sessions||!sessions.length) return;
+
+    const scores=sessions.filter(s=>s.overall_score).map(s=>s.overall_score);
+    const bestScore=scores.length?Math.max(...scores):0;
+    const avgScore=scores.length?Math.round(scores.reduce((a,b)=>a+b,0)/scores.length):0;
+    const totalTime=APP.profile?.total_practice_time||0;
+    const avgWPM=sessions.filter(s=>s.wpm).length?Math.round(sessions.filter(s=>s.wpm).reduce((a,b)=>a+(b.wpm||0),0)/sessions.filter(s=>s.wpm).length):0;
+    const totalFillers=sessions.reduce((a,b)=>a+(b.filler_words||0),0);
+
+    // Update stat cards on metrics page
+    const metricCards=document.querySelectorAll('#page-metrics .sc-val');
+    if(metricCards[0]) metricCards[0].textContent=bestScore;
+    if(metricCards[1]) metricCards[1].textContent=avgScore;
+    if(metricCards[2]){
+      const h=Math.floor(totalTime/3600);
+      const m=Math.floor((totalTime%3600)/60);
+      metricCards[2].textContent=h>0?h+'h '+m+'m':m+'m';
+    }
+    if(metricCards[3]) metricCards[3].textContent=avgWPM||'—';
+
+    // Update filler counts
+    const umTotal=sessions.reduce((a,b)=>a+(b.filler_words||0),0);
+    const fw=document.getElementById('fw-um-total');
+    if(fw) fw.textContent=umTotal;
+
+    // Update scenario cards
+    const scenarios=['cold','elevator','product','close','objection','demo'];
+    scenarios.forEach(sc=>{
+      const scSessions=sessions.filter(s=>s.scenario===sc);
+      const scScores=scSessions.filter(s=>s.overall_score).map(s=>s.overall_score);
+      const scBest=scScores.length?Math.max(...scScores):null;
+      const scEl=document.getElementById('sc-best-'+sc);
+      if(scEl) scEl.textContent=scBest||'—';
+      const scCount=document.getElementById('sc-count-'+sc);
+      if(scCount) scCount.textContent=scSessions.length+' attempts';
+    });
+
+    // Update skill bars
+    const skills=['rapport','clarity','confidence','close_score','discovery','value_prop','objections','listening'];
+    const skillIds=['rapport','clarity','confidence','close','discovery','valueprop','objections','listening'];
+    skills.forEach((skill,i)=>{
+      const vals=sessions.filter(s=>s[skill]!=null).map(s=>s[skill]);
+      const avg=vals.length?Math.round(vals.reduce((a,b)=>a+b,0)/vals.length*10)/10:0;
+      const bar=document.getElementById('metrics-bar-'+skillIds[i]);
+      const val=document.getElementById('metrics-val-'+skillIds[i]);
+      if(bar) bar.style.width=(avg*10)+'%';
+      if(val) val.textContent=avg;
+    });
+
+  }catch(e){console.log('Metrics load error:',e.message);}
+}
+
+async function loadStudentReport(){
+  if(!APP.user) return;
+  try{
+    const {data:sessions}=await supabase
+      .from('sessions')
+      .select('*')
+      .eq('student_id',APP.user.id)
+      .order('created_at',{ascending:false})
+      .limit(1);
+
+    if(!sessions||!sessions.length) return;
+    const s=sessions[0];
+
+    // Update report card with real data
+    const rcScore=document.getElementById('rc-score');
+    if(rcScore) rcScore.textContent=s.overall_score||'—';
+
+    const rcTitle=document.getElementById('rc-title');
+    if(rcTitle) rcTitle.textContent=`Session complete — ${s.scenario}`;
+
+    const rcSub=document.getElementById('rc-sub');
+    if(rcSub) rcSub.textContent=`${s.character_id} · ${s.product} · ${s.turn_count||0} turns · ${formatDuration(s.duration_seconds||0)}`;
+
+    const rcFillers=document.getElementById('rc-fillers');
+    if(rcFillers) rcFillers.textContent=s.filler_words||0;
+
+    const rcWPM=document.getElementById('rc-wpm');
+    if(rcWPM) rcWPM.textContent=s.wpm||'—';
+
+    const rcTurns=document.getElementById('rc-turns');
+    if(rcTurns) rcTurns.textContent=s.turn_count||0;
+
+    const rcDuration=document.getElementById('rc-duration');
+    if(rcDuration) rcDuration.textContent=formatDuration(s.duration_seconds||0);
+
+    if(s.ai_strength){
+      const el=document.getElementById('rc-strength');
+      if(el) el.textContent=s.ai_strength;
+    }
+    if(s.ai_improve){
+      const el=document.getElementById('rc-improve');
+      if(el) el.textContent=s.ai_improve;
+    }
+
+    // Update attempt history
+    const {data:allSessions}=await supabase
+      .from('sessions')
+      .select('id,overall_score,scenario,created_at,duration_seconds')
+      .eq('student_id',APP.user.id)
+      .order('created_at',{ascending:false})
+      .limit(5);
+
+    const timeline=document.querySelector('#page-report .attempt-timeline');
+    if(timeline&&allSessions){
+      timeline.innerHTML='';
+      const allScores=allSessions.filter(s=>s.overall_score).map(s=>s.overall_score);
+      const bestScore=Math.max(...allScores);
+      allSessions.forEach((sess,i)=>{
+        const date=new Date(sess.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+        const isBest=sess.overall_score===bestScore;
+        const prevScore=allSessions[i+1]?.overall_score;
+        const diff=prevScore&&sess.overall_score?sess.overall_score-prevScore:null;
+        const trendChip=diff!=null?(diff>0?`<span class="trend-chip tc-up">+${diff} ↑</span>`:diff<0?`<span class="trend-chip tc-down">${diff} ↓</span>`:'<span class="trend-chip tc-same">same</span>'):'<span class="trend-chip tc-same">first</span>';
+        const div=document.createElement('div');
+        div.className='at-row';
+        div.innerHTML=`
+          <div class="at-left"><div class="at-dot ${isBest?'best-dot':''}"></div>${i<allSessions.length-1?'<div class="at-line"></div>':''}</div>
+          <div class="at-body">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+              <div style="font-size:13px;font-weight:700;">${i===0?'This attempt':'Attempt '+(allSessions.length-i)} ${isBest?'<span class="tag tag-gold" style="margin-left:6px;">Personal best</span>':''}</div>
+              <div style="font-size:11px;color:var(--text-3);">${date} · ${formatDuration(sess.duration_seconds||0)}</div>
+            </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">${trendChip}<span style="font-size:11px;background:var(--surface);padding:2px 7px;border-radius:5px;">Score: ${sess.overall_score||'—'}</span></div>
+          </div>`;
+        timeline.appendChild(div);
+      });
+    }
+  }catch(e){console.log('Report load error:',e.message);}
+}
+
+function formatDuration(seconds){
+  const m=Math.floor(seconds/60);
+  const s=seconds%60;
+  return m+':'+(s<10?'0':'')+s;
 }
 
 /* ---- INIT ---- */
