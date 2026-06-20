@@ -2514,12 +2514,18 @@ async function handleSignup(){
     if(!classCode){showAuthAlert('Please enter your class code.');return;}
   }
   showAuthAlert('Creating your account...');
-  const {data,error}=await SB.auth.signUp({
-    email,password:pass,
-    options:{data:{full_name:first+' '+last,role:APP.authRole,class_code:classCode}}
-  });
-  if(error){showAuthAlert(error.message);return;}
-  showAuthAlert('Account created! Check your email to confirm, then log in.');
+  try{
+    initSB();
+    if(!SB){showAuthAlert('Connection error. Please try again.');return;}
+    const {data,error}=await SB.auth.signUp({
+      email,password:pass,
+      options:{data:{full_name:first+' '+last,role:APP.authRole,class_code:classCode}}
+    });
+    if(error){showAuthAlert(error.message);return;}
+    showAuthAlert('Account created! Check your email to confirm, then log in.');
+  }catch(e){
+    showAuthAlert('Signup failed: '+e.message);
+  }
 }
 async function loadProfile(userId){
   const {data:profile,error}=await SB.from('profiles').select('*').eq('id',userId).single();
@@ -3870,26 +3876,30 @@ function formatDuration(seconds){
 
 /* ---- INIT ---- */
 startCountdown();
-// Render rubric when page loads
-document.addEventListener('DOMContentLoaded', () => { renderRubric(); });
-setTimeout(() => { renderRubric(); }, 500);
-// Check API key on load
-// Check Supabase session on load
-SB.auth.getSession().then(({data:{session}})=>{
-  if(session){
-    APP.user=session.user;
-    loadProfile(session.user.id);
-  }
-});
-SB.auth.onAuthStateChange((event,session)=>{
-  if(event==='SIGNED_IN'&&session){
-    APP.user=session.user;
-    loadProfile(session.user.id);
-  } else if(event==='SIGNED_OUT'){
-    APP.user=null;APP.profile=null;APP.role=null;
-    goTo('page-auth');
-  }
-});
+setTimeout(function(){ renderRubric(); }, 500);
+
+// Initialize Supabase and check session
+initSB();
+if(SB){
+  SB.auth.getSession().then(function(r){
+    var session = r.data ? r.data.session : null;
+    if(session){
+      APP.user=session.user;
+      loadProfile(session.user.id);
+    }
+  });
+  SB.auth.onAuthStateChange(function(event,session){
+    if(event==='SIGNED_IN'&&session){
+      APP.user=session.user;
+      loadProfile(session.user.id);
+    } else if(event==='SIGNED_OUT'){
+      APP.user=null;APP.profile=null;APP.role=null;
+      goTo('page-auth');
+    }
+  });
+} else {
+  console.error('Supabase failed to initialize - check your SKEY value');
+}
 // Add settings button to nav after login
 function addSettingsToNav(){
   const navTabs=document.getElementById('nav-tabs');
