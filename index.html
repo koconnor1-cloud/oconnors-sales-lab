@@ -2273,24 +2273,36 @@ body{font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text
      JAVASCRIPT
      ============================================================ -->
 <script>
-/* ---- SUPABASE INIT ---- */
-window.SUPABASE_URL = 'https://yqnzdzikvtoknchpkkvl.supabase.co'; const SUPABASE_URL = window.SUPABASE_URL;
-var SUPABASE_ANON_KEY = 'sb_publishable_p-MNCebD4iaG1Bknz7ep6g_27LuiFGc';
-var supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-var EDGE_URL = SUPABASE_URL + '/functions/v1/ai-proxy';
+/* ---- SUPABASE CONFIG ---- */
+var SURL = 'https://yqnzdzikvtoknchpkkvl.supabase.co';
+var SKEY = 'sb_publishable_p-MNCebD4iaG1Bknz7ep6g_27LuiFGc';
+var EFURL = SURL + '/functions/v1/ai-proxy';
+var SB = null;
+
+function initSB(){
+  if(SB) return;
+  try{ SB = window.supabase.createClient(SURL, SKEY); }
+  catch(e){ console.error('Supabase init error:',e.message); }
+}
 
 async function callAI(type, payload){
-  const { data: { session } } = await supabase.auth.getSession();
-  const token = session?.access_token || SUPABASE_ANON_KEY;
-  const res = await fetch(EDGE_URL, {
+  initSB();
+  var token = SKEY;
+  try{
+    var r = await SB.auth.getSession();
+    if(r.data && r.data.session) token = r.data.session.access_token;
+  }catch(e){}
+  var res = await fetch(EFURL,{
     method:'POST',
     headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
-    body:JSON.stringify({type, payload}),
+    body:JSON.stringify({type:type,payload:payload})
   });
-  const data = await res.json();
-  if(data.error) throw new Error(data.error);
-  return data;
+  var d = await res.json();
+  if(d.error) throw new Error(d.error);
+  return d;
 }
+
+function checkApiKey(){ return true; }
 
 /* ---- STATE ---- */
 let APP={
@@ -2483,7 +2495,7 @@ async function handleLogin(){
   const pass=document.getElementById('login-password').value;
   if(!email||!pass){showAuthAlert('Please enter your email and password.');return;}
   showAuthAlert('Signing in...','info');
-  const {data,error}=await supabase.auth.signInWithPassword({email,password:pass});
+  const {data,error}=await SB.auth.signInWithPassword({email,password:pass});
   if(error){showAuthAlert(error.message);return;}
   APP.user=data.user;
   await loadProfile(data.user.id);
@@ -2502,7 +2514,7 @@ async function handleSignup(){
     if(!classCode){showAuthAlert('Please enter your class code.');return;}
   }
   showAuthAlert('Creating your account...');
-  const {data,error}=await supabase.auth.signUp({
+  const {data,error}=await SB.auth.signUp({
     email,password:pass,
     options:{data:{full_name:first+' '+last,role:APP.authRole,class_code:classCode}}
   });
@@ -2510,7 +2522,7 @@ async function handleSignup(){
   showAuthAlert('Account created! Check your email to confirm, then log in.');
 }
 async function loadProfile(userId){
-  const {data:profile,error}=await supabase.from('profiles').select('*').eq('id',userId).single();
+  const {data:profile,error}=await SB.from('profiles').select('*').eq('id',userId).single();
   if(error||!profile){
     // Profile might not exist yet  -  wait and retry
     setTimeout(()=>loadProfile(userId),1000);
@@ -2541,7 +2553,7 @@ async function loadProfile(userId){
 }
 function loginSuccess(){} // kept for compatibility
 async function doLogout(){
-  await supabase.auth.signOut();
+  await SB.auth.signOut();
   APP.user=null;APP.profile=null;APP.role=null;
   document.getElementById('nav-user').style.display='none';
   document.getElementById('nav-tabs').innerHTML='';
@@ -2795,7 +2807,7 @@ async function endSession(){
     };
     const prod=PRODUCTS[document.getElementById('product-select')?.value||'social']||'Social media marketing';
     try{
-      await supabase.from('sessions').insert({
+      await SB.from('sessions').insert({
         student_id:APP.user.id,
         scenario:APP.selectedScenario,
         character_id:APP.selectedChar,
@@ -2816,7 +2828,7 @@ async function endSession(){
         transcript:APP.sessionTranscript,
       });
       // Update total practice time
-      await supabase.from('profiles').update({
+      await SB.from('profiles').update({
         total_practice_time:(APP.profile.total_practice_time||0)+duration,
         last_practice_date:new Date().toISOString().split('T')[0],
       }).eq('id',APP.user.id);
@@ -3026,7 +3038,7 @@ async function renderStudentTable(filter=''){
 
   try{
     // Get all students in this class
-    const {data:students,error}=await supabase
+    const {data:students,error}=await SB
       .from('profiles')
       .select('*')
       .eq('role','student')
@@ -3036,7 +3048,7 @@ async function renderStudentTable(filter=''){
     if(error) throw error;
 
     // Get sessions for each student
-    const {data:sessions}=await supabase
+    const {data:sessions}=await SB
       .from('sessions')
       .select('*')
       .in('student_id', students.map(s=>s.id));
@@ -3171,8 +3183,8 @@ async function loadStudentDetail(id, name){
   if(heroName) heroName.textContent=name;
 
   // Get sessions
-  const {data:sessions}=await supabase.from('sessions').select('*').eq('student_id',id).order('created_at',{ascending:false});
-  const {data:profile}=await supabase.from('profiles').select('*').eq('id',id).single();
+  const {data:sessions}=await SB.from('sessions').select('*').eq('student_id',id).order('created_at',{ascending:false});
+  const {data:profile}=await SB.from('profiles').select('*').eq('id',id).single();
 
   if(!sessions) return;
 
@@ -3218,7 +3230,7 @@ async function loadStudentDetail(id, name){
 }
 
 async function viewSessionPlayback(sessionId){
-  const {data:session}=await supabase.from('sessions').select('*').eq('id',sessionId).single();
+  const {data:session}=await SB.from('sessions').select('*').eq('id',sessionId).single();
   if(!session) return;
 
   // Populate playback page
@@ -3712,7 +3724,7 @@ async function handleModalRecordingStop(){
 async function loadStudentMetrics(){
   if(!APP.user) return;
   try{
-    const {data:sessions}=await supabase
+    const {data:sessions}=await SB
       .from('sessions')
       .select('*')
       .eq('student_id',APP.user.id)
@@ -3773,7 +3785,7 @@ async function loadStudentMetrics(){
 async function loadStudentReport(){
   if(!APP.user) return;
   try{
-    const {data:sessions}=await supabase
+    const {data:sessions}=await SB
       .from('sessions')
       .select('*')
       .eq('student_id',APP.user.id)
@@ -3815,7 +3827,7 @@ async function loadStudentReport(){
     }
 
     // Update attempt history
-    const {data:allSessions}=await supabase
+    const {data:allSessions}=await SB
       .from('sessions')
       .select('id,overall_score,scenario,created_at,duration_seconds')
       .eq('student_id',APP.user.id)
@@ -3863,13 +3875,13 @@ document.addEventListener('DOMContentLoaded', () => { renderRubric(); });
 setTimeout(() => { renderRubric(); }, 500);
 // Check API key on load
 // Check Supabase session on load
-supabase.auth.getSession().then(({data:{session}})=>{
+SB.auth.getSession().then(({data:{session}})=>{
   if(session){
     APP.user=session.user;
     loadProfile(session.user.id);
   }
 });
-supabase.auth.onAuthStateChange((event,session)=>{
+SB.auth.onAuthStateChange((event,session)=>{
   if(event==='SIGNED_IN'&&session){
     APP.user=session.user;
     loadProfile(session.user.id);
