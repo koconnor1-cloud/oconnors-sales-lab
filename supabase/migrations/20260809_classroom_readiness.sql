@@ -20,7 +20,7 @@ as $function$
 begin
   insert into public.profiles (id,email,full_name,role,class_code)
   values (new.id,new.email,new.raw_user_meta_data->>'full_name','student',
-    coalesce(nullif(upper(new.raw_user_meta_data->>'class_code'),''),'SALES24'));
+    coalesce(nullif(upper(new.raw_user_meta_data->>'class_code'),''),'SALESFALL26'));
   return new;
 end;
 $function$;
@@ -28,14 +28,54 @@ revoke execute on function public.handle_new_user() from public, anon, authentic
 
 drop policy if exists "Users can insert own profile" on public.profiles;
 drop policy if exists "Users can update own profile" on public.profiles;
+create or replace function public.current_sales_lab_role()
+returns text language sql stable security definer set search_path=''
+as $$ select role from public.profiles where id=(select auth.uid()) $$;
+create or replace function public.current_sales_lab_class()
+returns text language sql stable security definer set search_path=''
+as $$ select class_code from public.profiles where id=(select auth.uid()) $$;
+revoke execute on function public.current_sales_lab_role() from public, anon;
+revoke execute on function public.current_sales_lab_class() from public, anon;
+grant execute on function public.current_sales_lab_role() to authenticated;
+grant execute on function public.current_sales_lab_class() to authenticated;
 create policy "Users update safe own profile" on public.profiles
 for update to authenticated
 using ((select auth.uid())=id)
 with check (
   (select auth.uid())=id
-  and role=(select p.role from public.profiles p where p.id=(select auth.uid()))
-  and class_code=(select p.class_code from public.profiles p where p.id=(select auth.uid()))
+  and role=public.current_sales_lab_role()
+  and class_code=public.current_sales_lab_class()
 );
+
+create table if not exists public.session_recordings (
+  id uuid primary key default gen_random_uuid(),
+  session_id uuid not null references public.sessions(id) on delete cascade,
+  student_id uuid not null references public.profiles(id) on delete cascade,
+  storage_path text not null unique,
+  response_index integer not null check (response_index > 0),
+  recorded_at_seconds integer not null default 0,
+  mime_type text,
+  created_at timestamptz not null default now(),
+  unique(session_id,response_index)
+);
+alter table public.session_recordings enable row level security;
+create policy "Students manage own recording metadata" on public.session_recordings for all to authenticated
+using (student_id=(select auth.uid())) with check (student_id=(select auth.uid()));
+create policy "Teachers view class recording metadata" on public.session_recordings for select to authenticated
+using (public.current_sales_lab_role()='teacher' and exists (
+  select 1 from public.profiles student where student.id=session_recordings.student_id and student.class_code=public.current_sales_lab_class()
+));
+
+insert into storage.buckets (id,name,public) values ('session-recordings','session-recordings',false)
+on conflict (id) do update set public=false;
+create policy "Students upload own session recordings" on storage.objects for insert to authenticated
+with check (bucket_id='session-recordings' and (storage.foldername(name))[1]=(select auth.uid())::text);
+create policy "Students read own session recordings" on storage.objects for select to authenticated
+using (bucket_id='session-recordings' and (storage.foldername(name))[1]=(select auth.uid())::text);
+create policy "Teachers read class session recordings" on storage.objects for select to authenticated
+using (bucket_id='session-recordings' and public.current_sales_lab_role()='teacher' and exists (
+  select 1 from public.profiles student where student.id::text=(storage.foldername(name))[1] and student.class_code=public.current_sales_lab_class()
+));
 
 drop policy if exists "Anyone can view assignments for their class" on public.assignments;
 drop policy if exists "Teachers can manage assignments" on public.assignments;
