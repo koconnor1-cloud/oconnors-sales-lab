@@ -2880,6 +2880,17 @@ function addTypingIndicator(){
 function removeTypingIndicator(){const el=document.getElementById('typing-ind');if(el)el.remove();}
 
 /* ---- VOICE RECORDING ---- */
+function supportedRecorderOptions(){
+  const preferred=['audio/webm;codecs=opus','audio/mp4','audio/webm'];
+  for(const mimeType of preferred){
+    if(window.MediaRecorder&&MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(mimeType)) return {mimeType};
+  }
+  return {};
+}
+function recordedAudioBlob(recorder,chunks){
+  const mimeType=(recorder&&recorder.mimeType)||(chunks[0]&&chunks[0].type)||'application/octet-stream';
+  return new Blob(chunks,{type:mimeType});
+}
 async function toggleRecording(){
   if(APP.isRecording){stopRecording();}else{startRecording();}
 }
@@ -2889,7 +2900,7 @@ async function startRecording(){
   try{
     const stream=await navigator.mediaDevices.getUserMedia({audio:true});
     APP.audioChunks=[];
-    APP.mediaRecorder=new MediaRecorder(stream);
+    APP.mediaRecorder=new MediaRecorder(stream,supportedRecorderOptions());
     APP.mediaRecorder.ondataavailable=e=>{if(e.data.size>0)APP.audioChunks.push(e.data);};
     APP.mediaRecorder.onstop=handleRecordingStop;
     APP.mediaRecorder.start();
@@ -2914,14 +2925,14 @@ function stopRecording(){
   }
 }
 async function handleRecordingStop(){
-  const blob=new Blob(APP.audioChunks,{type:'audio/webm'});
+  const blob=recordedAudioBlob(APP.mediaRecorder,APP.audioChunks);
   try{
     const reader2=new FileReader();
     const base64Audio = await new Promise((resolve)=>{
       reader2.onloadend=()=>resolve(reader2.result.split(',')[1]);
       reader2.readAsDataURL(blob);
     });
-    const data=await callAI('transcribe',{audio:base64Audio});
+    const data=await callAI('transcribe',{audio:base64Audio,mimeType:blob.type});
     const t=data.text||'';
     if(t){
       document.getElementById('chat-input').value=t;
@@ -3692,7 +3703,7 @@ async function startModalRecording(){
   try{
     const stream=await navigator.mediaDevices.getUserMedia({audio:true});
     modalAudioChunks=[];
-    modalRecorder=new MediaRecorder(stream);
+    modalRecorder=new MediaRecorder(stream,supportedRecorderOptions());
     modalRecorder.ondataavailable=e=>{if(e.data.size>0)modalAudioChunks.push(e.data);};
     modalRecorder.onstop=handleModalRecordingStop;
     modalRecorder.start();
@@ -3712,14 +3723,14 @@ function stopModalRecording(){
 }
 
 async function handleModalRecordingStop(){
-  const blob=new Blob(modalAudioChunks,{type:'audio/webm'});
+  const blob=recordedAudioBlob(modalRecorder,modalAudioChunks);
   try{
     const mreader=new FileReader();
     const mbase64=await new Promise((resolve)=>{
       mreader.onloadend=()=>resolve(mreader.result.split(',')[1]);
       mreader.readAsDataURL(blob);
     });
-    const data=await callAI('transcribe',{audio:mbase64});
+    const data=await callAI('transcribe',{audio:mbase64,mimeType:blob.type});
     const t=data.text||'';
     if(t)document.getElementById('modal-input').value=t;
   }catch(e){toast('Transcription failed.');}
