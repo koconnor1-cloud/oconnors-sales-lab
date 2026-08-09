@@ -700,7 +700,10 @@ body{background:linear-gradient(180deg,#f7f9fc 0,#f3f6fa 240px);}
       <div class="stat-card"><div class="sc-label">Class rank</div><div class="sc-val">#4</div><div class="sc-sub">hidden until reveal</div></div>
       <div class="stat-card"><div class="sc-label">Badges</div><div class="sc-val">3</div><div class="sc-sub">earned</div></div>
     </div>
-    <div class="section-label">Your assignments</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;">
+      <div class="section-label" style="margin-bottom:0;">Your assignments</div>
+      <button class="btn-sm" onclick="goTo('page-student-assignments')">View all <i class="ti ti-arrow-right"></i></button>
+    </div>
     <div class="assign-card">
       <div class="assign-icon">📞</div>
       <div class="assign-body">
@@ -724,23 +727,74 @@ body{background:linear-gradient(180deg,#f7f9fc 0,#f3f6fa 240px);}
         <button class="btn btn-navy" onclick="goTo('page-scenario')"><i class="ti ti-refresh"></i> Practice again</button>
       </div>
     </div>
-    <div class="assign-card competition">
-      <div class="assign-icon gold-icon">🏆</div>
-      <div class="assign-body">
-        <div class="assign-title">Competition: Best Cold Call — Period 1</div>
-        <div class="assign-sub">Ends Sunday midnight · 12 students entered</div>
-        <div class="assign-tags"><span class="tag tag-gold">Active now</span><span class="tag tag-gray">Scores hidden</span><span class="tag tag-navy">Certificate prize</span></div>
-      </div>
-      <div class="assign-right">
-        <button class="btn btn-gold" onclick="goTo('page-competition')"><i class="ti ti-trophy"></i> Enter now</button>
-      </div>
-    </div>
     <div class="dashboard-actions">
       <button class="btn btn-navy" onclick="goTo('page-scenario')"><i class="ti ti-player-play"></i> Start free practice</button>
       <button class="btn btn-outline" onclick="goTo('page-metrics')"><i class="ti ti-chart-bar"></i> Review performance</button>
       <button class="btn btn-outline" onclick="goTo('page-phrases')"><i class="ti ti-book"></i> Practice phrases</button>
     </div>
     <div class="dashboard-note"><i class="ti ti-sparkles"></i><div><strong>Your next best step:</strong> Complete the Cold Call assignment, then review your feedback before trying it again.</div></div>
+  </div>
+</div>
+
+<!-- ============================================================
+     PAGE 2B: STUDENT ASSIGNMENTS
+     ============================================================ -->
+<div class="page" id="page-student-assignments">
+  <div class="wrap">
+    <div class="hero-bar" style="display:flex;align-items:center;justify-content:space-between;gap:18px;">
+      <div>
+        <div class="hero-title">Your <span>assignments</span></div>
+        <div class="hero-sub">See what is due, continue your work, and revisit completed practice.</div>
+      </div>
+      <button class="btn btn-gold" onclick="goTo('page-scenario')"><i class="ti ti-player-play"></i> Free practice</button>
+    </div>
+
+    <div class="stats-grid stats-grid-4">
+      <div class="stat-card gold-card"><div class="sc-label">Due soon</div><div class="sc-val">1</div><div class="sc-sub">due Friday</div></div>
+      <div class="stat-card"><div class="sc-label">In progress</div><div class="sc-val">1</div><div class="sc-sub">3 attempts</div></div>
+      <div class="stat-card"><div class="sc-label">Completed</div><div class="sc-val">1</div><div class="sc-sub">this course</div></div>
+      <div class="stat-card"><div class="sc-label">Best score</div><div class="sc-val">78</div><div class="sc-sub">across assignments</div></div>
+    </div>
+
+    <div class="section-label">Due soon</div>
+    <div class="assign-card">
+      <div class="assign-icon">📞</div>
+      <div class="assign-body">
+        <div class="assign-title">Cold call — Social media marketing</div>
+        <div class="assign-sub">Marcus Rivera · Beginner · Service</div>
+        <div class="assign-tags"><span class="tag tag-red">Due Friday</span><span class="tag tag-gold">Watch example first</span><span class="tag tag-gray">0 of 3 attempts</span></div>
+      </div>
+      <div class="assign-right">
+        <button class="btn btn-navy" onclick="goTo('page-watch-example')"><i class="ti ti-player-play"></i> Begin assignment</button>
+      </div>
+    </div>
+
+    <div class="section-label" style="margin-top:22px;">In progress</div>
+    <div class="assign-card">
+      <div class="assign-icon">⚡</div>
+      <div class="assign-body">
+        <div class="assign-title">Elevator pitch — Office tech bundle</div>
+        <div class="assign-sub">Sandra Chen · Intermediate · Product</div>
+        <div class="assign-tags"><span class="tag tag-green">Example watched</span><span class="tag tag-gray">No deadline</span><span class="tag tag-navy">3 attempts</span></div>
+        <div style="margin-top:8px;"><div style="font-size:11px;color:var(--text-3);margin-bottom:4px;font-weight:600;">Best: 71/100</div><div class="prog-bar"><div class="prog-fill" style="width:71%"></div></div></div>
+      </div>
+      <div class="assign-right">
+        <button class="btn btn-navy" onclick="goTo('page-scenario')"><i class="ti ti-refresh"></i> Continue</button>
+      </div>
+    </div>
+
+    <div class="section-label" style="margin-top:22px;">Completed</div>
+    <div class="assign-card">
+      <div class="assign-icon"><i class="ti ti-check" style="color:var(--green);"></i></div>
+      <div class="assign-body">
+        <div class="assign-title">Product pitch — Business consulting</div>
+        <div class="assign-sub">Completed · 2 attempts · Best score 78/100</div>
+        <div class="assign-tags"><span class="tag tag-green">Completed</span><span class="tag tag-navy">Best: 78</span></div>
+      </div>
+      <div class="assign-right">
+        <button class="btn btn-outline" onclick="goTo('page-report')"><i class="ti ti-file-description"></i> View report</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -2477,8 +2531,8 @@ function updateNav(pageId){
     const tabs=[
       {id:'page-student-dash',label:'Home',icon:'ti-home'},
       {id:'page-scenario',label:'Practice',icon:'ti-player-play'},
+      {id:'page-student-assignments',label:'Assignments',icon:'ti-clipboard-check'},
       {id:'page-metrics',label:'Performance',icon:'ti-chart-bar'},
-      {id:'page-leaderboard',label:'Leaderboard',icon:'ti-ranking'},
       {id:'page-competition',label:'Competition',icon:'ti-trophy'},
     ];
     tabs.forEach(t=>{
