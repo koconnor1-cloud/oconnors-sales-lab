@@ -674,7 +674,7 @@ body{background:linear-gradient(180deg,#f7f9fc 0,#f3f6fa 240px);}
           </div>
           <div class="form-field"><label>Email</label><input type="email" id="s-email" placeholder="you@school.edu"></div>
           <div class="form-field"><label>Password</label><input type="password" id="s-pass" placeholder="At least 8 characters"></div>
-          <div class="form-field"><label>Class code</label><input type="text" id="s-code" class="code-input" placeholder="SALES24" maxlength="10"><div class="field-hint">Get your class code from Dr. O'Connor.</div></div>
+          <div class="form-field"><label>Class code</label><input type="text" id="s-code" class="code-input" placeholder="SALESFALL26" maxlength="12"><div class="field-hint">Get your class code from Dr. O'Connor.</div></div>
         </div>
         <div id="signup-teacher-fields" style="display:none;">
           <div class="card" style="border-color:var(--gold-border);background:var(--gold-light);margin-bottom:14px;">
@@ -2071,14 +2071,14 @@ body{background:linear-gradient(180deg,#f7f9fc 0,#f3f6fa 240px);}
     <div class="hero-bar" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
       <div>
         <div class="hero-title">Good morning, <span>Dr. O'Connor</span> 👋</div>
-        <div class="hero-sub">O'Connor's Sales Lab · SALES24 · Period 1</div>
+        <div class="hero-sub">O'Connor's Sales Lab · <span id="teacher-class-label">SALESFALL26</span></div>
         <div style="display:flex;gap:8px;margin-top:10px;">
-          <div class="code-chip"><i class="ti ti-key"></i> SALES24</div>
+          <div class="code-chip"><i class="ti ti-key"></i> <span id="teacher-class-code">SALESFALL26</span></div>
         </div>
       </div>
       <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end;">
         <button class="btn btn-gold" onclick="goTo('page-assign')"><i class="ti ti-plus"></i> Assign scenario</button>
-        <button class="btn btn-outline-white" onclick="toast('Grades exported to CSV!')"><i class="ti ti-download"></i> Export grades</button>
+        <button class="btn btn-outline-white" onclick="exportGrades()"><i class="ti ti-download"></i> Export grades</button>
         <button class="btn btn-outline-white" onclick="toast('Leaderboard revealed to all students!')"><i class="ti ti-eye"></i> Reveal leaderboard</button>
       </div>
     </div>
@@ -2106,7 +2106,7 @@ body{background:linear-gradient(180deg,#f7f9fc 0,#f3f6fa 240px);}
         </select>
       </div>
       <div style="display:flex;gap:6px;">
-        <button class="btn btn-outline btn-sm" onclick="toast('CSV exported!')"><i class="ti ti-download"></i> Export</button>
+        <button class="btn btn-outline btn-sm" onclick="exportGrades()"><i class="ti ti-download"></i> Export</button>
         <button class="btn btn-navy btn-sm" onclick="goTo('page-analytics')"><i class="ti ti-chart-bar"></i> Analytics</button>
       </div>
     </div>
@@ -2414,6 +2414,7 @@ let APP={
   cameraOn:false,
   voiceEnabled:localStorage.getItem('osl_voice')!=='false',
   sessionTranscript:[],
+  pendingRecordings:[],
   currentAudio:null,
   isSpeaking:false,
 };
@@ -2550,7 +2551,7 @@ async function handleSignup(){
   const pass=document.getElementById(isT?'t-pass':'s-pass').value;
   if(!first||!last||!email||!pass){showAuthAlert('Please fill in all fields.');return;}
   if(pass.length<8){showAuthAlert('Password must be at least 8 characters.');return;}
-  let classCode='SALES24';
+  let classCode='SALESFALL26';
   if(!isT){
     classCode=document.getElementById('s-code').value.trim().toUpperCase();
     if(!classCode){showAuthAlert('Please enter your class code.');return;}
@@ -2717,6 +2718,7 @@ function startSession(){
   document.getElementById('mood-pct').textContent=ch.mood+'%';
   APP.history=[];APP.turnCount=0;
   APP.sessionTranscript=[];
+  APP.pendingRecordings=[];
   APP.skillScores={};
   APP.lastCoachFeedback='';
   APP.fillers={um:0,like:0,youknow:0,so:0,basically:0};
@@ -2895,15 +2897,18 @@ async function endSession(event){
         duration_seconds:duration,
         transcript:APP.sessionTranscript||[],
         ai_feedback:APP.lastCoachFeedback||null,
+        assignment_id:APP.activeAssignment||null,
       }).select('id').single();
       if(sessionError)throw sessionError;
       if(!savedSession)throw new Error('The session was not returned after saving.');
+      const recordingFailures=await uploadSessionRecordings(savedSession.id);
       // Update total practice time
       const {error:profileError}=await SB.from('profiles').update({
         total_practice_time:(APP.profile.total_practice_time||0)+duration,
         last_practice_date:new Date().toISOString().split('T')[0],
       }).eq('id',APP.user.id);
       if(profileError)throw profileError;
+      if(recordingFailures)toast(recordingFailures+' audio response'+(recordingFailures===1?' was':'s were')+' not saved. The grade and transcript were saved.');
     }catch(e){
       console.error('Session save error:',e);
       toast('Session could not be saved: '+(e.message||'Unknown error')+'. Please try again.');
@@ -3021,6 +3026,7 @@ async function handleRecordingStop(){
     if(t){
       document.getElementById('chat-input').value=t;
       APP.recordedVoice=true;
+      APP.pendingRecordings.push({blob,mimeType:blob.type||'application/octet-stream',timestamp:Math.floor((Date.now()-(APP.sessionStart||Date.now()))/1000)});
       setVoiceStatus('','Transcribed  -  review and send');
     } else {setVoiceStatus('','Could not transcribe  -  please type your message.');}
   }catch(e){
@@ -3030,6 +3036,25 @@ async function handleRecordingStop(){
   mb.classList.remove('transcribing');
   document.getElementById('mic-icon').className='ti ti-microphone';
   document.getElementById('send-btn').disabled=false;
+}
+
+function recordingExtension(mimeType){
+  if((mimeType||'').includes('mp4'))return 'm4a';
+  if((mimeType||'').includes('ogg'))return 'ogg';
+  return 'webm';
+}
+async function uploadSessionRecordings(sessionId){
+  let failures=0;
+  for(let i=0;i<APP.pendingRecordings.length;i++){
+    const item=APP.pendingRecordings[i];
+    const path=`${APP.user.id}/${sessionId}/${String(i+1).padStart(3,'0')}.${recordingExtension(item.mimeType)}`;
+    const {error:uploadError}=await SB.storage.from('session-recordings').upload(path,item.blob,{contentType:item.mimeType,upsert:false});
+    if(uploadError){console.error('Recording upload error:',uploadError);failures++;continue;}
+    const {error:rowError}=await SB.from('session_recordings').insert({session_id:sessionId,student_id:APP.user.id,storage_path:path,response_index:i+1,recorded_at_seconds:item.timestamp,mime_type:item.mimeType});
+    if(rowError){console.error('Recording metadata error:',rowError);failures++;}
+  }
+  APP.pendingRecordings=[];
+  return failures;
 }
 function setVoiceStatus(cls,text){
   const vs=document.getElementById('voice-status');
@@ -3143,7 +3168,7 @@ async function renderStudentTable(filter=''){
       .from('profiles')
       .select('*')
       .eq('role','student')
-      .eq('class_code', APP.profile?.class_code||'SALES24')
+      .eq('class_code', APP.profile?.class_code||'SALESFALL26')
       .ilike('full_name', filter?`%${filter}%`:'%');
 
     if(error) throw error;
@@ -3160,7 +3185,7 @@ async function renderStudentTable(filter=''){
     if(!students.length){
       const empty=document.createElement('div');
       empty.style.cssText='padding:24px;text-align:center;color:var(--text-3);font-size:13px;';
-      empty.textContent='No students enrolled yet. Share class code SALES24 with your students.';
+      empty.textContent='No students enrolled yet. Share class code '+(APP.profile?.class_code||'SALESFALL26')+' with your students.';
       table.appendChild(empty);
       return;
     }
@@ -3334,6 +3359,8 @@ async function viewSessionPlayback(sessionId){
   const {data:session}=await SB.from('sessions').select('*').eq('id',sessionId).single();
   if(!session) return;
 
+  const {data:recordings}=await SB.from('session_recordings').select('*').eq('session_id',sessionId).order('response_index');
+
   // Populate playback page
   const transcript=document.querySelector('#page-playback .transcript-scroll');
   if(transcript&&session.transcript){
@@ -3360,6 +3387,20 @@ async function viewSessionPlayback(sessionId){
       <span class="tag tag-gold">Score: ${session.overall_score||' - '}/100</span>
       <span class="tag tag-gray">${date}</span>
       <span class="tag tag-navy">${session.character_id} · ${session.difficulty}</span>`;
+  }
+
+  const player=document.querySelector('#page-playback .video-player-box');
+  if(player){
+    if(recordings?.length){
+      const sources=[];
+      for(const recording of recordings){
+        const {data}=await SB.storage.from('session-recordings').createSignedUrl(recording.storage_path,3600);
+        if(data?.signedUrl)sources.push({url:data.signedUrl,index:recording.response_index});
+      }
+      player.innerHTML=sources.length?'<div style="width:100%;padding:18px;"><div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:10px;">Student audio responses</div>'+sources.map(s=>'<div style="display:flex;align-items:center;gap:10px;margin:8px 0;color:rgba(255,255,255,.7);font-size:12px;"><span>Response '+s.index+'</span><audio controls preload="metadata" src="'+s.url+'" style="flex:1;height:34px"></audio></div>').join('')+'</div>':'<div style="color:rgba(255,255,255,.5);font-size:13px;">Recording is unavailable.</div>';
+    }else{
+      player.innerHTML='<div style="color:rgba(255,255,255,.5);font-size:13px;">No audio was recorded for this session.</div>';
+    }
   }
 
   goTo('page-playback');
@@ -3893,9 +3934,30 @@ function renderSessionHistory(sessions){
 async function openSavedReport(id){await loadStudentReport(id);goTo('page-report');}
 async function loadTeacherDashboard(){
   if(!APP.user||APP.role!=='teacher')return;
-  STUDENT_DATA.length=0;renderStudentTable();
-  const stats=document.querySelectorAll('#page-teacher-dash .sc-val');stats.forEach(el=>el.textContent='—');
+  const code=APP.profile?.class_code||'SALESFALL26';
+  const label=document.getElementById('teacher-class-label');if(label)label.textContent=code;
+  const chip=document.getElementById('teacher-class-code');if(chip)chip.textContent=code;
+  STUDENT_DATA.length=0;await renderStudentTable();
   const banner=document.querySelector('#page-teacher-dash .alert-banner');if(banner)banner.innerHTML='<i class="ti ti-shield-check" style="font-size:18px;color:var(--green)"></i><div><div style="font-size:13px;font-weight:700;">Live classroom data</div><div style="font-size:12px;color:var(--text-2);">Student records will appear here only when authorized for your class.</div></div>';
+}
+
+async function exportGrades(){
+  if(!APP.user||APP.role!=='teacher')return;
+  const code=APP.profile?.class_code||'SALESFALL26';
+  const {data:students,error:studentError}=await SB.from('profiles').select('id,full_name,email').eq('role','student').eq('class_code',code).order('full_name');
+  if(studentError){toast('Grade export failed: '+studentError.message);return;}
+  const ids=(students||[]).map(s=>s.id);
+  const {data:sessions,error:sessionError}=ids.length?await SB.from('sessions').select('student_id,assignment_id,scenario,overall_score,created_at').in('student_id',ids):{data:[],error:null};
+  if(sessionError){toast('Grade export failed: '+sessionError.message);return;}
+  const rows=[['Student','Email','Class','Sessions','Best score','Average score','Latest score','Latest practice']];
+  (students||[]).forEach(student=>{
+    const attempts=(sessions||[]).filter(s=>s.student_id===student.id).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+    const scores=attempts.map(s=>s.overall_score).filter(Number.isFinite);
+    rows.push([student.full_name||'',student.email||'',code,attempts.length,scores.length?Math.max(...scores):'',scores.length?Math.round(scores.reduce((a,b)=>a+b,0)/scores.length):'',attempts[0]?.overall_score??'',attempts[0]?.created_at||'']);
+  });
+  const csv=rows.map(row=>row.map(value=>'"'+String(value).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  const a=document.createElement('a');a.href=url;a.download=`sales-lab-grades-${code}.csv`;a.click();URL.revokeObjectURL(url);
 }
 window.addEventListener('beforeunload',event=>{
   if(document.getElementById('page-arena')?.classList.contains('active')&&APP.turnCount>0){event.preventDefault();event.returnValue='';}
