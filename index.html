@@ -470,6 +470,116 @@ body{font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text
 .spinning{animation:spin 1s linear infinite;display:inline-block;}
 @keyframes blinkDot{0%,100%{opacity:1}50%{opacity:0.3}}
 .blink{animation:blinkDot 1.5s infinite;}
+
+/* ============================================================
+   FOCUSED EXPERIENCE — DESIGN PASS 2
+   ============================================================ */
+:root{--shadow-sm:0 1px 2px rgba(11,31,58,.05);--shadow-md:0 10px 30px rgba(11,31,58,.08);}
+body{background:linear-gradient(180deg,#f7f9fc 0,#f3f6fa 240px);}
+.nav{height:64px;padding:0 28px;box-shadow:0 4px 20px rgba(5,17,32,.14);}
+.nav-logo-mark{width:34px;height:34px;}
+.nav-logo-name{font-size:15px;}
+.nav-tabs{align-self:stretch;align-items:center;gap:4px;overflow-x:auto;scrollbar-width:none;}
+.nav-tabs::-webkit-scrollbar{display:none;}
+.nav-tab{height:40px;padding:0 13px;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;}
+.nav-tab i{font-size:15px;}
+.nav-user-avatar{width:32px;height:32px;}
+.wrap{max-width:1080px;padding:30px 28px 56px;}
+.card,.stat-card,.assign-card{box-shadow:var(--shadow-sm);}
+.card:hover,.assign-card:hover{box-shadow:var(--shadow-md);}
+.hero-bar{padding:28px 30px;box-shadow:var(--shadow-md);background:linear-gradient(135deg,var(--navy),var(--navy-2));}
+.hero-title{font-size:24px;}
+.stats-grid{gap:14px;}
+.stat-card{padding:17px 18px;}
+.assign-card{padding:20px 22px;gap:18px;}
+.assign-icon{width:50px;height:50px;}
+.dashboard-actions{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap;}
+.dashboard-note{margin-top:14px;padding:14px 16px;border:1px solid var(--gold-border);background:var(--gold-light);border-radius:var(--radius);display:flex;gap:10px;font-size:13px;line-height:1.5;color:var(--navy);}
+.dashboard-note i{font-size:18px;color:var(--gold);flex-shrink:0;}
+.arena-layout{height:calc(100vh - 64px);}
+.arena-left{width:210px;padding:18px;}
+.arena-right{width:220px;padding:16px;}
+.arena-header{padding:12px 18px;}
+.chat-area{padding:20px;gap:14px;}
+.bubble{max-width:68%;padding:12px 15px;font-size:14px;}
+.input-area{padding:12px 18px 16px;}
+.chat-input{font-size:14px;}
+.score-ring{background:var(--navy-light);border-radius:12px;border-bottom:none;margin-bottom:14px;}
+.auth-left{background:linear-gradient(145deg,var(--navy),#102d52);}
+.auth-right{padding:54px 58px;}
+.auth-feat{line-height:1.35;}
+
+@media(max-width:900px){
+  .nav{padding:0 14px;}
+  .nav-logo-sub,.nav-user-name{display:none;}
+  .nav-tabs{order:3;position:fixed;bottom:0;left:0;right:0;height:64px;background:var(--navy);border-top:2px solid var(--gold);justify-content:space-around;z-index:200;padding:4px 8px;}
+  .nav-tab{flex:1;height:54px;justify-content:center;flex-direction:column;gap:2px;padding:4px 6px;font-size:10px;}
+  .nav-tab i{font-size:18px;}
+  body{padding-bottom:64px;}
+  .page{min-height:calc(100vh - 128px);}
+  .wrap{padding:22px 18px 40px;}
+  .auth-layout{min-height:calc(100vh - 128px);}
+  .auth-left{width:38%;padding:34px 26px;}
+  .auth-right{padding:38px 30px;}
+  .auth-stats{gap:14px;flex-wrap:wrap;}
+  .arena-layout{height:calc(100vh - 128px);}
+  .arena-left{width:170px;padding:12px;}
+  .arena-right{width:190px;padding:12px;}
+}
+@media(max-width:700px){
+  .auth-layout{display:block;}
+  .auth-left{width:100%;min-height:auto;padding:30px 22px;}
+  .auth-left>div:last-child{display:none;}
+  .auth-headline{font-size:27px;}
+  .auth-features{margin-bottom:0;}
+  .auth-right{padding:30px 22px;}
+  .stats-grid-4,.stats-grid-5,.metrics-quad{grid-template-columns:repeat(2,1fr);}
+  .hero-bar{padding:22px;align-items:flex-start!important;gap:16px;}
+  .streak-pill{display:none;}
+  .assign-card{align-items:flex-start;flex-wrap:wrap;padding:16px;}
+  .assign-body{min-width:calc(100% - 68px);}
+  .assign-right{width:100%;align-items:stretch;}
+  .assign-right .btn{width:100%;justify-content:center;}
+  .char-grid{grid-template-columns:1fr;}
+  .scenario-grid{grid-template-columns:repeat(2,1fr);}
+  .arena-layout{display:grid;height:calc(100vh - 128px);grid-template-columns:1fr;grid-template-rows:auto 1fr;}
+  .arena-left{width:auto;display:flex;flex-direction:row;align-items:center;padding:8px 12px;overflow-x:auto;gap:16px;}
+  .char-panel{display:flex;align-items:center;gap:9px;text-align:left;padding:0 12px 0 0;border-bottom:0;border-right:1px solid rgba(255,255,255,.1);min-width:max-content;}
+  .char-panel-avatar{width:42px;height:42px;margin:0;}
+  .char-panel .mood-track,.char-panel>div[style*="Interest"],#speaking-indicator{display:none!important;}
+  .arena-left>div:nth-child(2){display:none;}
+  .arena-left>div:nth-child(3){display:flex;gap:14px;min-width:max-content;}
+  .arena-left .arena-label{display:none;}
+  .arena-center{min-width:0;}
+  .arena-right{display:none;}
+  .arena-header{padding:8px 10px;}
+  .arena-header .btn-sm{padding:6px 8px;}
+  .arena-header .btn-sm:first-child{display:none;}
+  .chat-area{padding:12px;}
+  .bubble{max-width:88%;font-size:13px;}
+  .input-area{padding:8px 10px 10px;}
+  .report-hero{align-items:flex-start;padding:20px;}
+  .report-score-ring{width:72px;height:72px;}
+  .lb-table,.student-table{overflow-x:auto;}
+  .lb-head,.lb-row{min-width:680px;}
+  .t-head,.t-row{min-width:850px;}
+  .heatmap-grid{overflow-x:auto;}
+}
+@media(max-width:430px){
+  .nav-logo-name{font-size:13px;}
+  .nav-user{display:none!important;}
+  .wrap{padding-left:14px;padding-right:14px;}
+  .hero-title{font-size:20px;}
+  .stats-grid-4,.stats-grid-5{gap:8px;}
+  .stat-card{padding:13px;}
+  .sc-val{font-size:21px;}
+  .dashboard-actions .btn{width:100%;justify-content:center;}
+  .metrics-quad{gap:8px;}
+  .mq-card{padding:9px;}
+  .sdr-name{width:88px;}
+  .sdr-badge{display:none;}
+}
+
 </style>
 </head>
 <body>
@@ -522,22 +632,22 @@ body{font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text
       <div>
         <div class="auth-eyebrow">O'Connor's Sales Lab</div>
         <div class="auth-headline">Train hard.<br><em>Close harder.</em></div>
-        <div class="auth-sub">The competitive sales training platform built for students who want to win. Practice, get scored, climb the leaderboard.</div>
+        <div class="auth-sub">Build confidence through realistic AI role-play. Practice deliberately, receive clear feedback, and improve with every conversation.</div>
         <div class="auth-features">
           <div class="auth-feat"><div class="feat-dot"><i class="ti ti-video"></i></div>Video + voice recording every session</div>
-          <div class="auth-feat"><div class="feat-dot"><i class="ti ti-chart-bar"></i></div>16 metrics scored by AI after each attempt</div>
+          <div class="auth-feat"><div class="feat-dot"><i class="ti ti-chart-bar"></i></div>Clear feedback across eight core selling skills</div>
           <div class="auth-feat"><div class="feat-dot"><i class="ti ti-trophy"></i></div>Class leaderboard &amp; live competitions</div>
-          <div class="auth-feat"><div class="feat-dot"><i class="ti ti-users"></i></div>4 AI customers across 5 sales scenarios</div>
+          <div class="auth-feat"><div class="feat-dot"><i class="ti ti-users"></i></div>4 AI customers across 6 sales scenarios</div>
           <div class="auth-feat"><div class="feat-dot"><i class="ti ti-certificate"></i></div>Downloadable winner certificates</div>
         </div>
       </div>
       <div>
         <div style="height:1px;background:rgba(255,255,255,0.1);margin-bottom:18px;"></div>
         <div class="auth-stats">
-          <div><div class="auth-stat-num">47</div><div class="auth-stat-lbl">Features</div></div>
-          <div><div class="auth-stat-num">16</div><div class="auth-stat-lbl">Metrics</div></div>
-          <div><div class="auth-stat-num">5</div><div class="auth-stat-lbl">Scenarios</div></div>
-          <div><div class="auth-stat-num">∞</div><div class="auth-stat-lbl">Attempts</div></div>
+          <div><div class="auth-stat-num">6</div><div class="auth-stat-lbl">Scenarios</div></div>
+          <div><div class="auth-stat-num">8</div><div class="auth-stat-lbl">Core skills</div></div>
+          <div><div class="auth-stat-num">4</div><div class="auth-stat-lbl">AI buyers</div></div>
+          <div><div class="auth-stat-num">∞</div><div class="auth-stat-lbl">Practice</div></div>
         </div>
       </div>
     </div>
@@ -556,7 +666,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text
       <!-- LOGIN -->
       <div id="form-login">
         <div class="form-field"><label>Email</label><input type="email" id="login-email" placeholder="you@school.edu"></div>
-        <div class="form-field"><label>Password</label><input type="password" id="login-password" placeholder="••••••••"><div class="field-hint">Demo: student@saleslab.com or teacher@saleslab.com · password: demo123</div></div>
+        <div class="form-field"><label>Password</label><input type="password" id="login-password" placeholder="••••••••"></div>
         <button class="btn btn-navy btn-full" onclick="handleLogin()">Log in to Sales Lab</button>
         <div class="divider-or">or</div>
         <button class="btn btn-outline btn-full" onclick="setFormTab('signup')">Create a new account</button>
@@ -570,7 +680,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text
           </div>
           <div class="form-field"><label>Email</label><input type="email" id="s-email" placeholder="you@school.edu"></div>
           <div class="form-field"><label>Password</label><input type="password" id="s-pass" placeholder="At least 8 characters"></div>
-          <div class="form-field"><label>Class code</label><input type="text" id="s-code" class="code-input" placeholder="SALES24" maxlength="10"><div class="field-hint">Get this from Dr. O'Connor · Demo: SALES24</div></div>
+          <div class="form-field"><label>Class code</label><input type="text" id="s-code" class="code-input" placeholder="SALES24" maxlength="10"><div class="field-hint">Get your class code from Dr. O'Connor.</div></div>
         </div>
         <div id="signup-teacher-fields" style="display:none;">
           <div class="form-row">
@@ -645,17 +755,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text
         <button class="btn btn-gold" onclick="goTo('page-competition')"><i class="ti ti-trophy"></i> Enter now</button>
       </div>
     </div>
-    <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
-      <button class="btn btn-navy" onclick="goTo('page-metrics')"><i class="ti ti-chart-bar"></i> My performance</button>
-      <button class="btn btn-outline" onclick="goTo('page-goals')"><i class="ti ti-target"></i> My goals</button>
-      <button class="btn btn-outline" onclick="goTo('page-loops')"><i class="ti ti-refresh"></i> Practice loops</button>
-      <button class="btn btn-outline" onclick="goTo('page-tutor')"><i class="ti ti-school"></i> AI Tutor</button>
-      <button class="btn btn-outline" onclick="goTo('page-multi')"><i class="ti ti-users"></i> Multi-person</button>
-      <button class="btn btn-outline" onclick="goTo('page-programs')"><i class="ti ti-list"></i> Programs</button>
-      <button class="btn btn-outline" onclick="goTo('page-phrases')"><i class="ti ti-book"></i> Phrase library</button>
-      <button class="btn btn-outline" onclick="goTo('page-leaderboard')"><i class="ti ti-trophy"></i> Leaderboard</button>
-      <button class="btn btn-outline" onclick="logout()"><i class="ti ti-logout"></i> Log out</button>
+    <div class="dashboard-actions">
+      <button class="btn btn-navy" onclick="goTo('page-scenario')"><i class="ti ti-player-play"></i> Start free practice</button>
+      <button class="btn btn-outline" onclick="goTo('page-metrics')"><i class="ti ti-chart-bar"></i> Review performance</button>
+      <button class="btn btn-outline" onclick="goTo('page-phrases')"><i class="ti ti-book"></i> Practice phrases</button>
     </div>
+    <div class="dashboard-note"><i class="ti ti-sparkles"></i><div><strong>Your next best step:</strong> Complete the Cold Call assignment, then review your feedback before trying it again.</div></div>
   </div>
 </div>
 
@@ -2421,22 +2526,16 @@ function updateNav(pageId){
   if(!APP.user){return;}
   if(APP.role==='student'){
     const tabs=[
-      {id:'page-student-dash',label:'Dashboard'},
-      {id:'page-metrics',label:'My performance'},
-      {id:'page-goals',label:'My goals'},
-      {id:'page-programs',label:'Programs'},
-      {id:'page-loops',label:'Practice loops'},
-      {id:'page-phrases',label:'Phrase library'},
-      {id:'page-tutor',label:'AI Tutor'},
-      {id:'page-multi',label:'Multi-person'},
-      {id:'page-leaderboard',label:'Leaderboard'},
-      {id:'page-competition',label:'Competition'},
-      {id:'page-scenario',label:'Practice'},
+      {id:'page-student-dash',label:'Home',icon:'ti-home'},
+      {id:'page-scenario',label:'Practice',icon:'ti-player-play'},
+      {id:'page-metrics',label:'Performance',icon:'ti-chart-bar'},
+      {id:'page-leaderboard',label:'Leaderboard',icon:'ti-ranking'},
+      {id:'page-competition',label:'Competition',icon:'ti-trophy'},
     ];
     tabs.forEach(t=>{
       const btn=document.createElement('button');
       btn.className='nav-tab'+(pageId===t.id?' active':'');
-      btn.textContent=t.label;
+      btn.innerHTML='<i class="ti '+t.icon+'"></i><span>'+t.label+'</span>';
       btn.onclick=()=>goTo(t.id);
       navTabs.appendChild(btn);
     });
@@ -2445,18 +2544,16 @@ function updateNav(pageId){
     navTabs.appendChild(logout);
   } else {
     const tabs=[
-      {id:'page-teacher-dash',label:'Dashboard'},
-      {id:'page-analytics',label:'Analytics'},
-      {id:'page-assign',label:'Assign'},
-      {id:'page-spaces',label:'Content spaces'},
-      {id:'page-rubric',label:'Rubric'},
-      {id:'page-lms',label:'LMS'},
-      {id:'page-programs',label:'Programs'},
+      {id:'page-teacher-dash',label:'Dashboard',icon:'ti-layout-dashboard'},
+      {id:'page-assign',label:'Assignments',icon:'ti-clipboard-check'},
+      {id:'page-analytics',label:'Analytics',icon:'ti-chart-dots'},
+      {id:'page-competition',label:'Competition',icon:'ti-trophy'},
+      {id:'page-rubric',label:'Settings',icon:'ti-settings'},
     ];
     tabs.forEach(t=>{
       const btn=document.createElement('button');
       btn.className='nav-tab'+(pageId===t.id?' active':'');
-      btn.textContent=t.label;
+      btn.innerHTML='<i class="ti '+t.icon+'"></i><span>'+t.label+'</span>';
       btn.onclick=()=>goTo(t.id);
       navTabs.appendChild(btn);
     });
