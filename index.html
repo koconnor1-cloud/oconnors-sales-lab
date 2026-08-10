@@ -2546,6 +2546,7 @@ let APP={
 // Region-neutral American English voices. Keep this mapping explicit so new
 // personas do not silently inherit a non-American default voice.
 const CHAR_VOICES={marcus:'onyx',sandra:'nova',derek:'onyx',patricia:'shimmer'};
+const CHAR_VOICE_PLAYBACK={marcus:{rate:0.84,preservePitch:false}};
 
 
 const CHARS={
@@ -3213,6 +3214,11 @@ async function speakAsCharacter(text){
     const audioBlob=new Blob([audioBytes],{type:'audio/mpeg'});
     const audioUrl=URL.createObjectURL(audioBlob);
     APP.currentAudio=new Audio(audioUrl);
+    const playback=CHAR_VOICE_PLAYBACK[APP.selectedChar];
+    if(playback){
+      APP.currentAudio.preservesPitch=playback.preservePitch;
+      APP.currentAudio.playbackRate=playback.rate;
+    }
     APP.currentAudio.onended=()=>{APP.isSpeaking=false;setSpeakingState(false);URL.revokeObjectURL(audioUrl);};
     APP.currentAudio.onerror=()=>{APP.isSpeaking=false;setSpeakingState(false);};
     await APP.currentAudio.play();
