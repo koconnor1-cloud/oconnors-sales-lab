@@ -399,8 +399,19 @@ body{font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text
 .showdown-rules{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px;}
 .showdown-rule{padding:13px;border-radius:var(--radius);background:var(--navy-light);font-size:12px;line-height:1.5;color:var(--text-2);}
 .showdown-rule strong{color:var(--navy);display:block;margin-bottom:3px;}
+.showdown-live{margin:14px 0;display:grid;gap:12px;}
+.showdown-live-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;}
+.showdown-live-card{border:1.5px solid var(--border);border-radius:var(--radius);padding:13px;background:var(--white);}
+.showdown-live-card.current{border-color:var(--gold);background:var(--gold-light);}
+.showdown-live-card.locked{opacity:.58;}
+.showdown-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+.showdown-table{width:100%;border-collapse:collapse;font-size:12px;}
+.showdown-table th,.showdown-table td{padding:9px 8px;border-bottom:1px solid var(--border);text-align:left;}
+.showdown-table th{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);}
+.showdown-table td:nth-child(1),.showdown-table td:nth-child(3){font-family:'DM Mono',monospace;}
 @media(max-width:800px){.showdown-grid{grid-template-columns:1fr}.round-list{grid-template-columns:repeat(2,1fr)}.round-card:nth-child(2)::after{display:none}.showdown-rules{grid-template-columns:1fr}.showdown-title{font-size:25px}}
-@media(max-width:480px){.round-list{grid-template-columns:1fr}.round-card::after{display:none!important}}
+@media(max-width:800px){.showdown-live-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:480px){.round-list,.showdown-live-grid{grid-template-columns:1fr}.round-card::after{display:none!important}}
 
 /* ============================================================
    PAGE 9: CERTIFICATE
@@ -2142,8 +2153,10 @@ body{background:linear-gradient(180deg,#f7f9fc 0,#f3f6fa 240px);}
       <div class="showdown-title">Argo Sales Showdown</div>
       <div class="showdown-tagline">COMPETE. ADVANCE. CLOSE.</div>
       <div class="showdown-copy">A multi-round class competition where students apply the skills they build in the Sales Lab, face increasingly challenging sales situations, and advance toward the championship round.</div>
-      <div class="showdown-status"><span class="showdown-dot"></span> Competition details · Schedule coming soon</div>
+      <div class="showdown-status" id="showdown-status"><span class="showdown-dot"></span> Loading competition status…</div>
     </div>
+
+    <div id="showdown-live" class="showdown-live"><div class="card empty-state">Loading the Argo Sales Showdown…</div></div>
 
     <div class="showdown-grid">
       <section class="showdown-card">
@@ -2572,6 +2585,7 @@ let APP={
   currentAudio:null,
   isSpeaking:false,
   interviewFeedback:[],
+  activeCompetitionRound:null,
 };
 
 // Region-neutral American English voices. Keep this mapping explicit so new
@@ -2641,6 +2655,7 @@ function goTo(pageId){
   if(pageId==='page-student-dash') setTimeout(loadStudentDashboard,100);
   if(pageId==='page-student-assignments') setTimeout(loadAssignmentsAndHistory,100);
   if(pageId==='page-teacher-dash') setTimeout(loadTeacherDashboard,100);
+  if(pageId==='page-competition') setTimeout(loadShowdown,100);
   if(pageId==='page-playbook') document.getElementById('playbook-search')?.focus();
 }
 
@@ -3111,6 +3126,16 @@ async function endSession(event){
       }).select('id').single();
       if(sessionError)throw sessionError;
       if(!savedSession)throw new Error('The session was not returned after saving.');
+      if(APP.activeCompetitionRound){
+        const {error:entryError}=await SB.from('competition_entries').insert({
+          round_id:APP.activeCompetitionRound.id,
+          student_id:APP.user.id,
+          session_id:savedSession.id,
+          score:overall
+        });
+        if(entryError)throw new Error('Official Showdown entry was not accepted: '+entryError.message);
+        toast('Official Argo Sales Showdown entry submitted.');
+      }
       const recordingFailures=await uploadSessionRecordings(savedSession.id);
       // Update total practice time
       const {error:profileError}=await SB.from('profiles').update({
@@ -3132,6 +3157,7 @@ async function endSession(event){
     return false;
   }
   await loadStudentReport();
+  APP.activeCompetitionRound=null;
   goTo('page-report');
   sessionSaveInProgress=false;
   return false;
@@ -4161,6 +4187,84 @@ async function loadTeacherDashboard(){
   const chip=document.getElementById('teacher-class-code');if(chip)chip.textContent=code;
   STUDENT_DATA.length=0;await renderStudentTable();
   const banner=document.querySelector('#page-teacher-dash .alert-banner');if(banner)banner.innerHTML='<i class="ti ti-shield-check" style="font-size:18px;color:var(--green)"></i><div><div style="font-size:13px;font-weight:700;">Live classroom data</div><div style="font-size:12px;color:var(--text-2);">Student records will appear here only when authorized for your class.</div></div>';
+}
+
+function showdownRoundLabel(round){return 'Round '+round.round_number+' · '+escapeHtml(round.name);}
+function showdownStatusTag(status){return '<span class="tag '+(status==='open'?'tag-green':status==='closed'?'tag-navy':'tag-gray')+'">'+escapeHtml(status)+'</span>';}
+
+async function loadShowdown(){
+  const host=document.getElementById('showdown-live'),status=document.getElementById('showdown-status');
+  if(!host||!APP.user||!APP.profile)return;
+  host.innerHTML='<div class="card empty-state">Loading competition…</div>';
+  const code=APP.profile.class_code||'SALESFALL26';
+  const {data:competitions,error}=await SB.from('competitions').select('*').eq('class_code',code).eq('title','Argo Sales Showdown').limit(1);
+  if(error){host.innerHTML='<div class="card empty-state"><strong>The competition engine is not connected yet.</strong><br>The included database update must be applied before the Showdown can open.</div>';return;}
+  const competition=competitions?.[0];
+  if(!competition){
+    status.innerHTML='<span class="showdown-dot"></span> Competition not yet configured';
+    host.innerHTML=APP.role==='teacher'
+      ?'<section class="showdown-card"><h2>Launch your class competition</h2><div class="showdown-card-intro">Create the four official rounds with the approved 27 → 16 → 8 → 4 → champion format.</div><button class="btn btn-gold" onclick="createShowdown()"><i class="ti ti-trophy"></i> Create Argo Sales Showdown</button></section>'
+      :'<div class="card empty-state"><strong>The Showdown has not opened yet.</strong><br>Your instructor will activate the competition here.</div>';
+    return;
+  }
+  const {data:rounds,error:roundError}=await SB.from('competition_rounds').select('*').eq('competition_id',competition.id).order('round_number');
+  if(roundError){host.innerHTML='<div class="card empty-state">Competition rounds could not be loaded. Please refresh.</div>';return;}
+  const allRounds=rounds||[],roundIds=allRounds.map(r=>r.id);
+  const entryResult=roundIds.length?await SB.from('competition_entries').select('*').in('round_id',roundIds).order('rank'):{data:[],error:null};
+  if(entryResult.error){host.innerHTML='<div class="card empty-state">Competition entries could not be loaded. Please refresh.</div>';return;}
+  const allEntries=entryResult.data||[],current=allRounds.find(r=>r.status==='open')||allRounds.find(r=>r.round_number===competition.current_round);
+  const stateText=competition.status==='complete'?'Complete':current?.status==='open'?showdownRoundLabel(current)+' is open':'Ready for instructor action';
+  status.innerHTML='<span class="showdown-dot"></span> '+stateText;
+  host.innerHTML=APP.role==='teacher'?renderTeacherShowdown(competition,allRounds,allEntries):renderStudentShowdown(competition,allRounds,allEntries);
+}
+
+function renderTeacherShowdown(competition,rounds,entries){
+  const cards=rounds.map(round=>{
+    const count=entries.filter(e=>e.round_id===round.id).length;
+    const controls=round.status==='locked'
+      ?'<button class="btn-sm" onclick="openShowdownRound(\''+round.id+'\')">Open round</button>'
+      :round.status==='open'
+        ?'<button class="btn-sm" onclick="finalizeShowdownRound(\''+round.id+'\')">Close, rank & advance</button>'
+        :'<button class="btn-sm" onclick="toggleShowdownResults(\''+round.id+'\','+(!round.results_released)+')">'+(round.results_released?'Hide':'Release')+' results</button>';
+    return '<div class="showdown-live-card '+(round.status==='open'?'current ':round.status==='locked'?'locked ':'')+'"><div class="round-number">Round '+round.round_number+'</div><div class="round-name">'+escapeHtml(round.name)+'</div><div class="round-detail">'+escapeHtml(SCENARIOS[round.scenario]?.name||round.scenario)+' · '+escapeHtml(round.difficulty)+'</div><div class="assign-tags">'+showdownStatusTag(round.status)+'<span class="tag tag-gray">'+count+' entr'+(count===1?'y':'ies')+'</span>'+(round.results_released?'<span class="tag tag-gold">Results live</span>':'')+'</div><div class="showdown-actions">'+controls+'</div></div>';
+  }).join('');
+  const active=rounds.find(r=>r.status==='open')||rounds.slice().reverse().find(r=>r.status==='closed');
+  const standings=active?showdownStandings(active,entries,true):'';
+  return '<section class="showdown-card"><h2>Instructor competition controls</h2><div class="showdown-card-intro">Open one round at a time. Closing a round ranks official scores and marks the students who advance.</div><div class="showdown-live-grid">'+cards+'</div></section>'+standings;
+}
+
+function renderStudentShowdown(competition,rounds,entries){
+  const mine=entries.filter(e=>e.student_id===APP.user.id),open=rounds.find(r=>r.status==='open');
+  const myEntry=open&&mine.find(e=>e.round_id===open.id);
+  const prior=open&&rounds.find(r=>r.round_number===open.round_number-1);
+  const eligible=!!open&&(open.round_number===1||mine.some(e=>e.round_id===prior?.id&&e.advanced));
+  let action='';
+  if(competition.status==='complete')action='<div class="alert-banner"><i class="ti ti-trophy"></i><div><strong>The Showdown is complete.</strong><div>Final results and champion recognition appear below when released.</div></div></div>';
+  else if(!open)action='<div class="card empty-state"><strong>No round is open.</strong><br>Watch this page for the instructor’s next release.</div>';
+  else if(myEntry)action='<section class="showdown-card"><h2>'+showdownRoundLabel(open)+'</h2><div class="showdown-card-intro">Your official entry is locked in. Results remain protected until your instructor releases them.</div><span class="tag tag-green">Submitted · '+(myEntry.score??'—')+'/100</span></section>';
+  else if(!eligible)action='<section class="showdown-card"><h2>'+showdownRoundLabel(open)+'</h2><div class="showdown-card-intro">This round is open to students who advanced from the prior round.</div><span class="tag tag-gray">Not eligible for this round</span></section>';
+  else action='<section class="showdown-card"><h2>'+showdownRoundLabel(open)+' is open</h2><div class="showdown-card-intro">'+escapeHtml(SCENARIOS[open.scenario]?.name||open.scenario)+' · '+escapeHtml(CHARS[open.character_id]?.name||open.character_id)+' · '+escapeHtml(open.product)+'. You receive one official attempt.</div><button class="btn btn-gold" onclick="startShowdownAttempt(\''+open.id+'\')"><i class="ti ti-player-play"></i> Begin official attempt</button></section>';
+  const released=rounds.filter(r=>r.results_released).map(r=>showdownStandings(r,entries,false)).join('');
+  return action+released;
+}
+
+function showdownStandings(round,entries,isTeacher){
+  const ranked=entries.filter(e=>e.round_id===round.id).sort((a,b)=>(a.rank||999)-(b.rank||999)||(b.score||0)-(a.score||0));
+  if(!ranked.length)return '<section class="showdown-card"><h2>'+showdownRoundLabel(round)+' standings</h2><div class="empty-state">No official entries yet.</div></section>';
+  if(!isTeacher&&!round.results_released)return '';
+  return '<section class="showdown-card"><h2>'+showdownRoundLabel(round)+' standings</h2><div style="overflow:auto"><table class="showdown-table"><thead><tr><th>Place</th><th>Competitor</th><th>Score</th><th>Status</th></tr></thead><tbody>'+ranked.map(e=>'<tr><td>'+(e.rank||'—')+'</td><td>'+(e.student_id===APP.user.id?'You':'Competitor '+String(e.student_id).slice(0,4).toUpperCase())+'</td><td>'+(e.score??'—')+'</td><td>'+(e.advanced?'<span class="tag tag-green">Advanced</span>':'<span class="tag tag-gray">Official</span>')+'</td></tr>').join('')+'</tbody></table></div></section>';
+}
+
+async function createShowdown(){const {error}=await SB.rpc('create_argo_sales_showdown');if(error){toast(error.message);return;}toast('Argo Sales Showdown created.');loadShowdown();}
+async function openShowdownRound(id){const {error}=await SB.rpc('open_showdown_round',{p_round_id:id});if(error){toast(error.message);return;}toast('Round opened.');loadShowdown();}
+async function finalizeShowdownRound(id){if(!confirm('Close this round, rank every official entry, and determine who advances?'))return;const {error}=await SB.rpc('finalize_showdown_round',{p_round_id:id});if(error){toast(error.message);return;}toast('Round finalized and advancement calculated.');loadShowdown();}
+async function toggleShowdownResults(id,released){const {error}=await SB.from('competition_rounds').update({results_released:released}).eq('id',id);if(error){toast(error.message);return;}toast(released?'Results released.':'Results hidden.');loadShowdown();}
+async function startShowdownAttempt(id){
+  const {data:round,error}=await SB.from('competition_rounds').select('*').eq('id',id).single();
+  if(error||!round||round.status!=='open'){toast('This round is not currently open.');return;}
+  APP.activeAssignment=null;APP.activeCompetitionRound=round;APP.selectedScenario=round.scenario;APP.selectedChar=round.character_id;
+  const productKey=Object.keys(PRODUCTS).find(key=>PRODUCTS[key]===round.product);if(productKey){const select=document.getElementById('product-select');if(select)select.value=productKey;}
+  goTo('page-scenario');
 }
 
 async function exportGrades(){
