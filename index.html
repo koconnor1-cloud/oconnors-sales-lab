@@ -1313,57 +1313,20 @@ body{background:linear-gradient(180deg,#f7f9fc 0,#f3f6fa 240px);}
     </div>
 
     <!-- PER SCENARIO BREAKDOWN -->
-    <div class="section-label">Performance by scenario</div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;">
-      <div class="card" style="padding:14px;cursor:pointer;border-color:var(--gold-border);background:var(--gold-light);" onclick="toast('Cold Call detail — coming soon!')">
-        <div style="font-size:20px;margin-bottom:6px;">📞</div>
-        <div style="font-size:13px;font-weight:700;color:var(--text);">Cold call</div>
-        <div style="font-size:22px;font-weight:700;font-family:'DM Mono',monospace;color:var(--gold);margin:4px 0;">74</div>
-        <div style="font-size:11px;color:var(--text-2);">4 attempts · 47m practice</div>
-        <div style="height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:8px;"><div style="width:74%;height:100%;background:var(--gold);border-radius:2px;"></div></div>
-        <div style="font-size:10px;color:var(--green);margin-top:4px;font-weight:600;"><i class="ti ti-trending-up"></i> +16 improvement</div>
-      </div>
-      <div class="card" style="padding:14px;cursor:pointer;" onclick="toast('Elevator Pitch detail — coming soon!')">
-        <div style="font-size:20px;margin-bottom:6px;">⚡</div>
-        <div style="font-size:13px;font-weight:700;color:var(--text);">Elevator pitch</div>
-        <div style="font-size:22px;font-weight:700;font-family:'DM Mono',monospace;color:var(--navy);margin:4px 0;">71</div>
-        <div style="font-size:11px;color:var(--text-2);">3 attempts · 28m practice</div>
-        <div style="height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:8px;"><div style="width:71%;height:100%;background:var(--navy);border-radius:2px;"></div></div>
-        <div style="font-size:10px;color:var(--green);margin-top:4px;font-weight:600;"><i class="ti ti-trending-up"></i> +9 improvement</div>
-      </div>
-      <div class="card" style="padding:14px;cursor:pointer;" onclick="toast('Product Pitch detail — coming soon!')">
-        <div style="font-size:20px;margin-bottom:6px;">📦</div>
-        <div style="font-size:13px;font-weight:700;color:var(--text);">Product pitch</div>
-        <div style="font-size:22px;font-weight:700;font-family:'DM Mono',monospace;color:var(--amber);margin:4px 0;">66</div>
-        <div style="font-size:11px;color:var(--text-2);">2 attempts · 22m practice</div>
-        <div style="height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:8px;"><div style="width:66%;height:100%;background:var(--amber);border-radius:2px;"></div></div>
-        <div style="font-size:10px;color:var(--amber);margin-top:4px;font-weight:600;"><i class="ti ti-minus"></i> Still improving</div>
-      </div>
-      <div class="card" style="padding:14px;cursor:pointer;" onclick="toast('Closing detail — coming soon!')">
-        <div style="font-size:20px;margin-bottom:6px;">🤝</div>
-        <div style="font-size:13px;font-weight:700;color:var(--text);">Closing</div>
-        <div style="font-size:22px;font-weight:700;font-family:'DM Mono',monospace;color:var(--red);margin:4px 0;">58</div>
-        <div style="font-size:11px;color:var(--text-2);">1 attempt · 10m practice</div>
-        <div style="height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:8px;"><div style="width:58%;height:100%;background:var(--red);border-radius:2px;"></div></div>
-        <div style="font-size:10px;color:var(--red);margin-top:4px;font-weight:600;"><i class="ti ti-alert-circle"></i> Needs more practice</div>
-      </div>
-      <div class="card" style="padding:14px;cursor:pointer;opacity:0.6;" onclick="toast('No attempts yet — start practicing!')">
-        <div style="font-size:20px;margin-bottom:6px;">🛡️</div>
-        <div style="font-size:13px;font-weight:700;color:var(--text);">Objection handling</div>
-        <div style="font-size:22px;font-weight:700;font-family:'DM Mono',monospace;color:var(--text-3);margin:4px 0;">—</div>
-        <div style="font-size:11px;color:var(--text-2);">0 attempts</div>
-        <div style="height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:8px;"><div style="width:0%;height:100%;background:var(--red);border-radius:2px;"></div></div>
-        <div style="font-size:10px;color:var(--text-3);margin-top:4px;">Not started</div>
-      </div>
-      <div class="card" style="padding:14px;cursor:pointer;opacity:0.6;" onclick="toast('No attempts yet — start practicing!')">
-        <div style="font-size:20px;margin-bottom:6px;">💻</div>
-        <div style="font-size:13px;font-weight:700;color:var(--text);">Product demo</div>
-        <div style="font-size:22px;font-weight:700;font-family:'DM Mono',monospace;color:var(--text-3);margin:4px 0;">—</div>
-        <div style="font-size:11px;color:var(--text-2);">0 attempts</div>
-        <div style="height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:8px;"><div style="width:0%;height:100%;background:var(--red);border-radius:2px;"></div></div>
-        <div style="font-size:10px;color:var(--text-3);margin-top:4px;">Not started</div>
+    <div id="performance-overview">
+      <div class="section-label">Performance by scenario</div>
+      <div id="performance-scenario-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;">
+        <div class="card empty-state" style="grid-column:1/-1;">Loading scenario performance…</div>
       </div>
     </div>
+    <section id="performance-scenario-detail" style="display:none;margin-bottom:14px;" aria-live="polite">
+      <button class="btn btn-outline" onclick="closePerformanceScenario()" style="margin-bottom:12px;"><i class="ti ti-arrow-left"></i> All scenarios</button>
+      <div class="hero-bar" style="margin-bottom:14px;">
+        <div class="hero-title" id="performance-detail-title">Scenario attempts</div>
+        <div class="hero-sub" id="performance-detail-sub"></div>
+      </div>
+      <div id="performance-attempt-list"></div>
+    </section>
 
     <!-- SKILL BARS -->
     <div class="card">
@@ -4171,6 +4134,68 @@ function searchPlaybook(value){
 function toggleFaq(button){button.closest('.faq-item').classList.toggle('open');}
 
 /* ---- REAL DATA LOADERS ---- */
+let METRICS_SESSIONS=[];
+
+function performanceScenarioMeta(key){
+  const fallback={
+    cold:['Cold call','📞'],elevator:['Elevator pitch','⚡'],product:['Product pitch','📦'],
+    close:['Closing','🤝'],objection:['Objection handling','🛡️'],demo:['Product demo','💻'],
+    interview:['Mock job interview','💼']
+  };
+  return {name:SCENARIOS[key]?.name||fallback[key]?.[0]||key,icon:fallback[key]?.[1]||'🎯'};
+}
+function renderPerformanceScenarios(sessions){
+  METRICS_SESSIONS=sessions||[];
+  const host=document.getElementById('performance-scenario-grid');
+  if(!host)return;
+  const keys=['cold','elevator','product','close','objection','demo','interview'];
+  host.innerHTML=keys.map(key=>{
+    const meta=performanceScenarioMeta(key);
+    const attempts=METRICS_SESSIONS.filter(s=>s.scenario===key).sort((x,y)=>new Date(x.created_at)-new Date(y.created_at));
+    const scores=attempts.map(s=>Number(s.overall_score)).filter(Number.isFinite);
+    const best=scores.length?Math.max(...scores):null;
+    const total=attempts.reduce((sum,s)=>sum+(Number(s.duration_seconds)||0),0);
+    const improvement=scores.length>1?scores[scores.length-1]-scores[0]:null;
+    const color=best==null?'var(--text-3)':best>=80?'var(--green)':best>=70?'var(--gold)':best>=60?'var(--amber)':'var(--red)';
+    const status=!attempts.length?'Not started':improvement==null?'First attempt saved':improvement>0?'+'+improvement+' points since first attempt':improvement<0?Math.abs(improvement)+' points below first attempt':'Same as first attempt';
+    return '<button class="card" type="button" onclick="openPerformanceScenario(\''+key+'\')" aria-label="Open '+escapeHtml(meta.name)+' attempt history" style="padding:14px;cursor:pointer;text-align:left;width:100%;font-family:inherit;'+(!attempts.length?'opacity:.65;':'')+'">'+
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;"><div style="font-size:22px;">'+meta.icon+'</div><i class="ti ti-chevron-right" style="color:var(--text-3);"></i></div>'+
+      '<div style="font-size:13px;font-weight:700;color:var(--text);margin-top:5px;">'+escapeHtml(meta.name)+'</div>'+
+      '<div style="font-size:22px;font-weight:700;font-family:DM Mono,monospace;color:'+color+';margin:4px 0;">'+(best==null?'—':best)+'</div>'+
+      '<div style="font-size:11px;color:var(--text-2);">'+attempts.length+' attempt'+(attempts.length===1?'':'s')+(total?' · '+formatDuration(total):'')+'</div>'+
+      '<div style="height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:8px;"><div style="width:'+(best||0)+'%;height:100%;background:'+color+';border-radius:2px;"></div></div>'+
+      '<div style="font-size:10px;color:'+(improvement>0?'var(--green)':'var(--text-3)')+';margin-top:5px;font-weight:600;">'+escapeHtml(status)+'</div></button>';
+  }).join('');
+}
+function openPerformanceScenario(key){
+  const meta=performanceScenarioMeta(key);
+  const attempts=METRICS_SESSIONS.filter(s=>s.scenario===key).sort((x,y)=>new Date(y.created_at)-new Date(x.created_at));
+  document.getElementById('performance-overview').style.display='none';
+  const detail=document.getElementById('performance-scenario-detail');
+  detail.style.display='block';
+  document.getElementById('performance-detail-title').innerHTML=meta.icon+' '+escapeHtml(meta.name);
+  document.getElementById('performance-detail-sub').textContent=attempts.length+' saved attempt'+(attempts.length===1?'':'s')+' · Select an attempt to open its complete report.';
+  const host=document.getElementById('performance-attempt-list');
+  if(!attempts.length){
+    host.innerHTML='<div class="card empty-state"><div style="font-size:28px;margin-bottom:8px;">'+meta.icon+'</div><div style="font-weight:700;color:var(--navy);margin-bottom:4px;">No attempts yet</div><div style="font-size:13px;color:var(--text-2);margin-bottom:14px;">Complete this scenario and its report will appear here.</div><button class="btn btn-navy" onclick="goTo(\'page-scenario\')"><i class="ti ti-player-play"></i> Start practicing</button></div>';
+  }else{
+    const validScores=attempts.map(s=>Number(s.overall_score)).filter(Number.isFinite),best=validScores.length?Math.max(...validScores):null;
+    host.innerHTML=attempts.map((s,index)=>{
+      const score=Number(s.overall_score),isBest=Number.isFinite(score)&&score===best;
+      const older=attempts[index+1],change=older&&Number.isFinite(score)&&Number.isFinite(Number(older.overall_score))?score-Number(older.overall_score):null;
+      const date=new Date(s.created_at).toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'});
+      const buyer=s.scenario==='interview'?'Sandra Chen':(CHARS[s.character_id]?.name||s.character_id||'Buyer');
+      const changeTag=change==null?'':change>0?'<span class="tag tag-green">+'+change+' improvement</span>':change<0?'<span class="tag tag-red">'+change+' points</span>':'<span class="tag tag-gray">Same score</span>';
+      return '<div class="assign-card" style="align-items:flex-start;"><div class="assign-icon">'+meta.icon+'</div><div class="assign-body"><div class="assign-title">Attempt '+(attempts.length-index)+(isBest?' <span class="tag tag-gold">Personal best</span>':'')+'</div><div class="assign-sub">'+escapeHtml(date)+' · '+escapeHtml(buyer)+' · '+formatDuration(s.duration_seconds||0)+'</div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;"><span class="tag tag-navy">Score '+(Number.isFinite(score)?score:'—')+'/100</span>'+changeTag+(s.assignment_id?'<span class="tag tag-gray">Assignment</span>':'<span class="tag tag-gray">Free practice</span>')+'</div></div><div class="assign-right"><button class="btn btn-navy" onclick="openSavedReport(\''+s.id+'\')"><i class="ti ti-file-description"></i> View full report</button></div></div>';
+    }).join('');
+  }
+  detail.scrollIntoView({behavior:'smooth',block:'start'});
+}
+function closePerformanceScenario(){
+  document.getElementById('performance-scenario-detail').style.display='none';
+  document.getElementById('performance-overview').style.display='block';
+}
+
 async function loadStudentMetrics(){
   if(!APP.user) return;
   try{
@@ -4205,17 +4230,8 @@ async function loadStudentMetrics(){
     const fw=document.getElementById('fw-um-total');
     if(fw) fw.textContent=umTotal;
 
-    // Update scenario cards
-    const scenarios=['cold','elevator','product','close','objection','demo'];
-    scenarios.forEach(sc=>{
-      const scSessions=sessions.filter(s=>s.scenario===sc);
-      const scScores=scSessions.filter(s=>s.overall_score).map(s=>s.overall_score);
-      const scBest=scScores.length?Math.max(...scScores):null;
-      const scEl=document.getElementById('sc-best-'+sc);
-      if(scEl) scEl.textContent=scBest||' - ';
-      const scCount=document.getElementById('sc-count-'+sc);
-      if(scCount) scCount.textContent=scSessions.length+' attempts';
-    });
+    // Render clickable scenario summaries and their saved-attempt drill-down
+    renderPerformanceScenarios(sessions);
 
     // Update skill bars
     const skills=['rapport','clarity','confidence','close_score','discovery','value_prop','objections','listening'];
