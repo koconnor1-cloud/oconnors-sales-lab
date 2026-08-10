@@ -4111,7 +4111,7 @@ function renderSessionHistory(sessions){
   if(!sessions.length){host.innerHTML='<div class="card empty-state">Completed sessions will appear here with a saved report.</div>';return;}
   host.innerHTML=sessions.map(s=>'<div class="assign-card"><div class="assign-icon">'+assignmentIcon(s.scenario)+'</div><div class="assign-body"><div class="assign-title">'+escapeHtml(SCENARIOS[s.scenario]?.name||s.scenario)+'</div><div class="assign-sub">'+new Date(s.created_at).toLocaleString()+' · '+formatDuration(s.duration_seconds||0)+'</div></div><div class="assign-right"><span class="tag tag-gold">'+(s.overall_score??'—')+'/100</span><button class="btn btn-outline" onclick="openSavedReport(\''+s.id+'\')">View report</button></div></div>').join('');
 }
-async async function openSavedReport(id){await loadStudentReport(id);goTo('page-report');}
+async function openSavedReport(id){await loadStudentReport(id);goTo('page-report');}
 async function loadTeacherDashboard(){
   if(!APP.user||APP.role!=='teacher')return;
   const code=APP.profile?.class_code||'SALESFALL26';
