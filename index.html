@@ -928,6 +928,7 @@ body{background:linear-gradient(180deg,#f7f9fc 0,#f3f6fa 240px);}
       <div class="scenario-btn" id="sc-close" onclick="selectScenario('close',this)"><div class="sc-icon">🤝</div><div class="sc-name">Closing the deal</div><div class="sc-desc">Ask for commitment</div></div>
       <div class="scenario-btn" id="sc-elevator" onclick="selectScenario('elevator',this)"><div class="sc-icon">⚡</div><div class="sc-name">Elevator pitch</div><div class="sc-desc">60 seconds to impress</div></div>
       <div class="scenario-btn" id="sc-product" onclick="selectScenario('product',this)"><div class="sc-icon">📦</div><div class="sc-name">Product pitch</div><div class="sc-desc">Sell a physical product</div></div>
+      <div class="scenario-btn" id="sc-interview" onclick="selectScenario('interview',this)"><div class="sc-icon">💼</div><div class="sc-name">Bonus: Mock job interview</div><div class="sc-desc">Career Readiness · 8 questions</div></div>
     </div>
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
       <div class="section-label" style="margin-bottom:0;white-space:nowrap;">Selling:</div>
@@ -2579,7 +2580,19 @@ const SCENARIOS={
   close:{icon:'🤝',name:'Closing the deal',sub:'Ask for commitment'},
   elevator:{icon:'⚡',name:'Elevator pitch',sub:'60 seconds to impress'},
   product:{icon:'📦',name:'Product pitch',sub:'Sell a physical product'},
+  interview:{icon:'💼',name:'Mock job interview',sub:'Career Readiness bonus'},
 };
+
+const INTERVIEW_QUESTIONS=[
+  'Tell me about yourself.',
+  'Are you working now?',
+  'What interested you about this job?',
+  'How well do you work on teams?',
+  'Have you ever had to work in a stressful situation? How did you handle that?',
+  'What would you say are your strengths? Weaknesses?',
+  'Why should we hire you?',
+  'How soon would you be available?'
+];
 
 const PRODUCTS={
   social:'Social media marketing',consulting:'Business consulting',
@@ -2763,6 +2776,11 @@ function selectScenario(id,el){
   APP.selectedScenario=id;
   document.querySelectorAll('.scenario-btn').forEach(b=>b.classList.remove('selected'));
   el.classList.add('selected');
+  if(id==='interview'){
+    APP.selectedChar='sandra';
+    document.querySelectorAll('.char-card').forEach(c=>c.classList.remove('selected'));
+    document.getElementById('char-card-sandra')?.classList.add('selected');
+  }
 }
 
 /* ---- BRIEFING DATA ---- */
@@ -2791,6 +2809,10 @@ const SCENARIO_BRIEFS={
     mission:"You're pitching a physical product  -  something the customer can touch, use, and compare to what they already have. Make it tangible. Paint a picture of how it fits into their daily operation and why it's better than what they're using now.",
     tips:["Describe how it feels to use it  -  make it real in their mind","Address the switching cost early  -  they're thinking about it anyway","ROI is everything  -  if you can put a number on the benefit, do it"]
   },
+  interview:{
+    mission:"This Career Readiness bonus is a structured mock job interview. Sandra Chen will ask eight required questions in order. Answer as if you are meeting a real hiring manager: be concise, specific, professional, and ready to support your claims with examples.",
+    tips:["Use a focused 60–90 second answer for “Tell me about yourself”","Use a specific situation, action, and result when describing teamwork or stress","Be honest about weaknesses, then explain how you are improving","Connect your strengths and interest directly to the job"]
+  },
 };
 
 const CHAR_DESCS={
@@ -2801,6 +2823,7 @@ const CHAR_DESCS={
 };
 
 function showBriefing(){
+  if(APP.selectedScenario==='interview') APP.selectedChar='sandra';
   const ch=CHARS[APP.selectedChar];
   const sc=SCENARIOS[APP.selectedScenario];
   const prod=PRODUCTS[document.getElementById('product-select').value]||'marketing services';
@@ -2842,6 +2865,7 @@ function launchArena(){
 
 function startSession(){
   if(!checkApiKey())return;
+  if(APP.selectedScenario==='interview') APP.selectedChar='sandra';
   const ch=CHARS[APP.selectedChar];
   const sc=SCENARIOS[APP.selectedScenario];
   const prod=PRODUCTS[document.getElementById('product-select').value]||'marketing services';
@@ -2873,6 +2897,7 @@ function startSession(){
     close:`We've been talking for a while. I need to make a decision. What's your best case?`,
     elevator:`You've got 60 seconds  -  elevator closes at the top floor. Go.`,
     product:`Alright, you said you had something to show me. Let's see it.`,
+    interview:INTERVIEW_QUESTIONS[0],
   };
   setTimeout(()=>{
     const opening=openings[APP.selectedScenario]||openings.cold;
@@ -2885,6 +2910,21 @@ function buildSystemPrompt(){
   const ch=CHARS[APP.selectedChar];
   const sc=SCENARIOS[APP.selectedScenario];
   const prod=PRODUCTS[document.getElementById('product-select').value]||'marketing services';
+  if(APP.selectedScenario==='interview'){
+    const answeredIndex=Math.max(0,APP.turnCount-1);
+    const nextQuestion=INTERVIEW_QUESTIONS[answeredIndex+1]||'Thank you. That concludes our interview.';
+    return `You are Sandra Chen, a professional American hiring manager conducting a structured mock job interview. Be warm, attentive, and realistic. The eight required questions must be asked verbatim and in the listed order. The student has just answered question ${answeredIndex+1} of 8. Do not substitute, reorder, or add an interview question. Your CHARACTER reply must briefly acknowledge the answer without evaluating it, then ask exactly this next required line: "${nextQuestion}"
+
+Coach the answer using these eight interview dimensions, encoded in the existing score fields: Rapport=Professionalism, Clarity=Clarity, Confidence=Confidence, Close=Overall interview readiness, Discovery=Relevance, ValueProp=Specific examples, Objections=Composure, Listening=Responsiveness.
+
+After EACH student message respond with EXACTLY this format:
+
+CHARACTER: [Brief natural acknowledgment, followed by the exact next required question above. After question 8, only thank the candidate and conclude.]
+
+COACH: [One sentence on what they did well. One sentence on the single most important improvement. Scores: Rapport:X | Clarity:X | Confidence:X | Close:X | Discovery:X | ValueProp:X | Objections:X | Listening:X where X is 1-10. Filler counts: Fillers:um=N,like=N,youknow=N,so=N,basically=N. Mood shift: Mood:N where N is -10 to +10.]
+
+OVERALL: [Single integer 1-100 for cumulative interview readiness]`;
+  }
   return `${ch.system}
 
 The student is practicing a "${sc.name}" scenario, selling "${prod}".
