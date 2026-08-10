@@ -202,7 +202,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text
    PAGE 5: PRACTICE ARENA
    ============================================================ */
 .arena-layout{display:flex;height:calc(100vh - 54px);overflow:hidden;}
-.arena-left{width:196px;flex-shrink:0;background:var(--navy);display:flex;flex-direction:column;padding:14px;gap:10px;overflow-y:auto;}
+.arena-left{width:286px;flex-shrink:0;background:var(--navy);display:flex;flex-direction:column;padding:16px;gap:12px;overflow-y:auto;}
 .arena-center{flex:1;display:flex;flex-direction:column;background:var(--surface);overflow:hidden;}
 .arena-right{width:174px;flex-shrink:0;background:var(--white);padding:12px;overflow-y:auto;border-left:1px solid var(--border);}
 .arena-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--white);border-bottom:1px solid var(--border);flex-shrink:0;}
@@ -238,8 +238,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text
 .send-btn-arena:hover{background:var(--navy-3);}
 .send-btn-arena:disabled{opacity:0.4;cursor:not-allowed;}
 /* Arena left panel */
-.char-panel{text-align:center;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.1);}
-.char-panel-avatar{width:88px;height:88px;border-radius:50%;margin:0 auto 10px;border:3px solid var(--gold);overflow:hidden;background:var(--surface);transition:box-shadow .2s ease,transform .2s ease;}
+.char-panel{text-align:center;padding-bottom:14px;border-bottom:1px solid rgba(255,255,255,0.1);}
+.char-panel-avatar{width:238px;height:268px;border-radius:14px;margin:0 auto 13px;border:3px solid var(--gold);overflow:hidden;background:var(--surface);box-shadow:0 12px 28px rgba(0,0,0,.28);transition:box-shadow .2s ease,transform .2s ease;}
+.char-panel-avatar .buyer-photo{object-position:center 24%;}
+.char-panel-name{font-size:16px!important;}
+.char-panel-role{font-size:11px!important;}
 .char-panel-avatar.is-speaking{animation:buyer-speaking 1.4s ease-in-out infinite;}
 @keyframes buyer-speaking{0%,100%{box-shadow:0 0 0 3px rgba(232,179,16,.25),0 0 14px rgba(232,179,16,.2);transform:scale(1)}50%{box-shadow:0 0 0 7px rgba(232,179,16,.12),0 0 26px rgba(232,179,16,.5);transform:scale(1.025)}}
 .char-panel-name{font-size:13px;font-weight:700;color:var(--white);}
@@ -546,10 +549,14 @@ body{background:linear-gradient(180deg,#f7f9fc 0,#f3f6fa 240px);}
   .char-grid{grid-template-columns:1fr;}
   .scenario-grid{grid-template-columns:repeat(2,1fr);}
   .arena-layout{display:grid;height:calc(100vh - 128px);grid-template-columns:1fr;grid-template-rows:auto 1fr;}
-  .arena-left{width:auto;display:flex;flex-direction:row;align-items:center;padding:8px 12px;overflow-x:auto;gap:16px;}
-  .char-panel{display:flex;align-items:center;gap:9px;text-align:left;padding:0 12px 0 0;border-bottom:0;border-right:1px solid rgba(255,255,255,.1);min-width:max-content;}
-  .char-panel-avatar{width:42px;height:42px;margin:0;}
-  .char-panel .mood-track,.char-panel>div[style*="Interest"],#speaking-indicator{display:none!important;}
+  .arena-left{width:auto;display:flex;flex-direction:row;align-items:center;padding:10px 12px;overflow-x:auto;gap:16px;}
+  .char-panel{display:grid;grid-template-columns:92px minmax(150px,1fr);grid-template-rows:auto auto auto;column-gap:12px;align-items:center;text-align:left;padding:0 14px 0 0;border-bottom:0;border-right:1px solid rgba(255,255,255,.1);min-width:280px;}
+  .char-panel-avatar{width:92px;height:104px;border-radius:12px;margin:0;grid-row:1 / 4;}
+  .char-panel-name{font-size:14px!important;align-self:end;}
+  .char-panel-role{font-size:10px!important;align-self:start;}
+  .char-panel .mood-track,.char-panel>div[style*="Interest"]{display:none!important;}
+  #speaking-indicator{grid-column:2;display:none;justify-content:flex-start!important;margin-top:2px!important;}
+  #speaking-indicator[style*="display: flex"],#speaking-indicator[style*="display:flex"]{display:flex!important;}
   .arena-left>div:nth-child(2){display:none;}
   .arena-left>div:nth-child(3){display:flex;gap:14px;min-width:max-content;}
   .arena-left .arena-label{display:none;}
