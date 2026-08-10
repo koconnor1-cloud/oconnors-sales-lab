@@ -1,3 +1,22 @@
+-- Replace the empty legacy single-round prototype schema, if present.
+-- Refuse to proceed if legacy competition records exist so deployment cannot discard data.
+do $compatibility$
+begin
+  if to_regclass('public.competitions') is not null
+     and not exists (
+       select 1 from information_schema.columns
+       where table_schema='public' and table_name='competitions' and column_name='title'
+     ) then
+    if exists (select 1 from public.competitions)
+       or (to_regclass('public.competition_entries') is not null and exists (select 1 from public.competition_entries)) then
+      raise exception 'Legacy competition data exists; migrate it before installing the Showdown engine';
+    end if;
+    drop table if exists public.competition_entries cascade;
+    drop table public.competitions cascade;
+  end if;
+end;
+$compatibility$;
+
 -- Operational Argo Sales Showdown: four rounds, official entries, standings, and advancement.
 
 create table if not exists public.competitions (
