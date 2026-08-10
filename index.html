@@ -591,6 +591,28 @@ body{background:linear-gradient(180deg,#f7f9fc 0,#f3f6fa 240px);}
   .nav-tab{padding:5px 2px;font-size:9px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}.nav-tab i{font-size:18px}.page{padding-bottom:72px}
   .assignment-hero{align-items:flex-start;flex-direction:column}.assignment-hero .btn{width:100%;justify-content:center}.assign-card{align-items:flex-start;flex-wrap:wrap}.assign-right{width:100%;align-items:stretch}.assign-right .btn{justify-content:center}
 }
+
+/* ---- SALES PLAYBOOK ---- */
+.playbook-help{border:1px solid rgba(232,179,16,.4)!important;color:var(--gold-2)!important;white-space:nowrap}
+.playbook-layout{display:grid;grid-template-columns:220px minmax(0,1fr);gap:18px;align-items:start}
+.playbook-menu{position:sticky;top:72px;padding:10px}
+.playbook-menu button{width:100%;display:flex;align-items:center;gap:9px;padding:10px 11px;border:0;border-radius:8px;background:transparent;color:var(--text-2);font:600 12px 'DM Sans',sans-serif;text-align:left;cursor:pointer}
+.playbook-menu button:hover,.playbook-menu button.active{background:var(--navy-light);color:var(--navy)}
+.playbook-section{display:none}.playbook-section.active{display:block}
+.playbook-search{position:relative;margin:12px 0 18px}.playbook-search i{position:absolute;left:13px;top:12px;color:var(--text-3)}
+.playbook-search input{width:100%;padding:11px 13px 11px 38px;border:1.5px solid var(--border);border-radius:var(--radius);font:13px 'DM Sans',sans-serif}
+.playbook-search input:focus{outline:none;border-color:var(--navy);box-shadow:0 0 0 3px rgba(11,31,58,.07)}
+.playbook-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.playbook-tile{background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius-lg);padding:17px}
+.playbook-tile h3{font-size:14px;margin-bottom:6px;color:var(--navy)}.playbook-tile p,.playbook-copy{font-size:13px;line-height:1.65;color:var(--text-2)}
+.skill-step{display:flex;gap:12px;padding:13px 0;border-bottom:1px solid var(--border)}.skill-step:last-child{border:0}
+.skill-num{width:28px;height:28px;border-radius:8px;background:var(--gold-light);color:var(--gold);display:flex;align-items:center;justify-content:center;font:700 12px 'DM Mono',monospace;flex:none}
+.glossary-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.glossary-item{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:13px}.glossary-item strong{display:block;font-size:13px;color:var(--navy);margin-bottom:4px}.glossary-item span{font-size:12px;color:var(--text-2);line-height:1.5}
+.faq-item{border-bottom:1px solid var(--border)}.faq-item button{width:100%;padding:14px 0;border:0;background:transparent;display:flex;justify-content:space-between;gap:12px;text-align:left;font:700 13px 'DM Sans',sans-serif;color:var(--navy);cursor:pointer}.faq-answer{display:none;padding:0 0 14px;font-size:13px;line-height:1.6;color:var(--text-2)}.faq-item.open .faq-answer{display:block}
+.playbook-link{border:0;background:none;color:var(--navy-3);text-decoration:underline;text-underline-offset:2px;font:600 inherit;cursor:pointer}
+@media(max-width:720px){.playbook-layout{grid-template-columns:1fr}.playbook-menu{position:static;display:flex;overflow-x:auto;gap:4px}.playbook-menu button{width:auto;white-space:nowrap}.playbook-grid,.glossary-list{grid-template-columns:1fr}}
+
 </style>
 </head>
 <body>
@@ -610,6 +632,7 @@ body{background:linear-gradient(180deg,#f7f9fc 0,#f3f6fa 240px);}
   </a>
   <div class="nav-tabs" id="nav-tabs"></div>
   <div class="nav-user" id="nav-user" style="display:none;">
+    <button class="nav-tab playbook-help" id="playbook-help" onclick="openPlaybook('getting-started')" aria-label="Open Sales Playbook"><i class="ti ti-help-circle"></i><span>Sales Playbook</span></button>
     <span class="nav-user-name" id="nav-user-name"></span>
     <div class="nav-user-avatar" id="nav-user-avatar">?</div>
   </div>
@@ -743,6 +766,97 @@ body{background:linear-gradient(180deg,#f7f9fc 0,#f3f6fa 240px);}
     <div id="assignment-list"><div class="card empty-state">Loading assignments…</div></div>
     <div class="section-label" style="margin-top:24px;">Session history</div>
     <div id="session-history"><div class="card empty-state">Loading saved reports…</div></div>
+  </div>
+</div>
+
+
+<!-- ============================================================
+     SALES PLAYBOOK
+     ============================================================ -->
+<div class="page" id="page-playbook">
+  <div class="wrap">
+    <div class="hero-bar"><div class="hero-title">Sales <span>Playbook</span></div><div class="hero-sub">Your guide to the platform, professional selling skills, scoring, terminology, and common questions.</div></div>
+    <div class="playbook-search"><i class="ti ti-search"></i><input id="playbook-search" type="search" placeholder="Search skills, terms, or questions…" aria-label="Search the Sales Playbook" oninput="searchPlaybook(this.value)"></div>
+    <div class="playbook-layout">
+      <aside class="card playbook-menu" aria-label="Sales Playbook sections">
+        <button class="active" data-playbook="getting-started" onclick="showPlaybookSection('getting-started',this)"><i class="ti ti-rocket"></i> Getting started</button>
+        <button data-playbook="platform" onclick="showPlaybookSection('platform',this)"><i class="ti ti-map"></i> How the Lab works</button>
+        <button data-playbook="skills" onclick="showPlaybookSection('skills',this)"><i class="ti ti-target-arrow"></i> Selling skills</button>
+        <button data-playbook="scoring" onclick="showPlaybookSection('scoring',this)"><i class="ti ti-chart-bar"></i> Scoring guide</button>
+        <button data-playbook="glossary" onclick="showPlaybookSection('glossary',this)"><i class="ti ti-book-2"></i> Glossary</button>
+        <button data-playbook="faq" onclick="showPlaybookSection('faq',this)"><i class="ti ti-help-hexagon"></i> FAQ</button>
+      </aside>
+      <main id="playbook-content">
+        <section class="playbook-section active" data-section="getting-started">
+          <div class="card"><div class="section-label">Getting started</div><h2 style="font-size:20px;margin-bottom:8px;">Practice with a purpose</h2><p class="playbook-copy">The Sales Lab is designed around a simple cycle: prepare, practice, review, and improve. Your instructor may assign a required scenario, or you can use Free Practice to build a specific skill.</p></div>
+          <div class="playbook-grid">
+            <div class="playbook-tile"><h3>1. Prepare</h3><p>Read the buyer profile, scenario objective, product details, and assignment instructions before you begin.</p></div>
+            <div class="playbook-tile"><h3>2. Practice</h3><p>Speak naturally with the AI buyer. Ask questions, listen to the response, and adapt instead of reading a script.</p></div>
+            <div class="playbook-tile"><h3>3. Review</h3><p>Open your saved report to study the transcript, skill scores, coaching, pacing, and filler-word feedback.</p></div>
+            <div class="playbook-tile"><h3>4. Improve</h3><p>Choose one skill to improve, try the scenario again, and compare the new report with your earlier attempt.</p></div>
+          </div>
+        </section>
+        <section class="playbook-section" data-section="platform">
+          <div class="card"><div class="section-label">How the Sales Lab works</div>
+            <div class="skill-step"><div class="skill-num"><i class="ti ti-home"></i></div><div><strong>Home</strong><p class="playbook-copy">See what is due, your next recommended action, and a snapshot of your progress.</p></div></div>
+            <div class="skill-step"><div class="skill-num"><i class="ti ti-player-play"></i></div><div><strong>Practice</strong><p class="playbook-copy">Choose a buyer, scenario, and product for skill-building outside required coursework.</p></div></div>
+            <div class="skill-step"><div class="skill-num"><i class="ti ti-clipboard-check"></i></div><div><strong>Assignments</strong><p class="playbook-copy">Complete required activities, monitor attempts, and reopen saved reports. Recordings and transcripts are securely available to you and your instructor.</p></div></div>
+            <div class="skill-step"><div class="skill-num"><i class="ti ti-chart-bar"></i></div><div><strong>Performance</strong><p class="playbook-copy">Track scores and skill development across your completed sessions.</p></div></div>
+            <div class="skill-step"><div class="skill-num"><i class="ti ti-trophy"></i></div><div><strong>Competition</strong><p class="playbook-copy">Participate in separate class challenges when your instructor opens them. Competition activity is not the same as an assignment.</p></div></div>
+          </div>
+        </section>
+        <section class="playbook-section" data-section="skills">
+          <div class="card"><div class="section-label">Core conversation flow</div>
+            <div class="skill-step"><div class="skill-num">1</div><div><strong>Opening & rapport</strong><p class="playbook-copy">Earn attention, establish relevance, and create a professional reason to continue.</p></div></div>
+            <div class="skill-step"><div class="skill-num">2</div><div><strong>Discovery & listening</strong><p class="playbook-copy">Use thoughtful open-ended questions, follow up on what matters, and avoid rushing to pitch.</p></div></div>
+            <div class="skill-step"><div class="skill-num">3</div><div><strong>Value proposition</strong><p class="playbook-copy">Connect the solution to the buyer’s stated needs and explain the business impact clearly.</p></div></div>
+            <div class="skill-step"><div class="skill-num">4</div><div><strong>Objection handling</strong><p class="playbook-copy">Acknowledge the concern, clarify its cause, respond with relevant value or evidence, and confirm resolution.</p></div></div>
+            <div class="skill-step"><div class="skill-num">5</div><div><strong>Closing & next steps</strong><p class="playbook-copy">Recognize buying signals and confidently ask for an appropriate, specific commitment.</p></div></div>
+          </div>
+        </section>
+        <section class="playbook-section" data-section="scoring">
+          <div class="card"><div class="section-label">Eight scored skills</div><p class="playbook-copy" style="margin-bottom:14px;">Scores reflect evidence in the conversation. A higher score requires consistent skill—not merely using one correct phrase.</p>
+            <div class="playbook-grid">
+              <div class="playbook-tile"><h3>Rapport</h3><p>Professional opening, relevance, warmth, and credibility.</p></div>
+              <div class="playbook-tile"><h3>Discovery</h3><p>Quality, depth, and sequencing of questions about needs.</p></div>
+              <div class="playbook-tile"><h3>Listening</h3><p>Evidence that you understood and built on buyer responses.</p></div>
+              <div class="playbook-tile"><h3>Value proposition</h3><p>Clear connection between solution, need, and measurable value.</p></div>
+              <div class="playbook-tile"><h3>Objection handling</h3><p>Composure, clarification, relevance, and confirmation.</p></div>
+              <div class="playbook-tile"><h3>Clarity</h3><p>Concise, organized language that is easy to understand.</p></div>
+              <div class="playbook-tile"><h3>Confidence</h3><p>Decisive delivery without sounding aggressive or scripted.</p></div>
+              <div class="playbook-tile"><h3>Close</h3><p>A timely, specific request for commitment or next action.</p></div>
+            </div>
+          </div>
+        </section>
+        <section class="playbook-section" data-section="glossary">
+          <div class="card"><div class="section-label">Searchable glossary</div><div class="glossary-list" id="glossary-list">
+            <div class="glossary-item"><strong>BATNA</strong><span>Best Alternative to a Negotiated Agreement—the option you have if no deal is reached.</span></div>
+            <div class="glossary-item"><strong>Buying signal</strong><span>A question or behavior suggesting the buyer is considering commitment.</span></div>
+            <div class="glossary-item"><strong>Closed-ended question</strong><span>A question usually answered with a short, specific response such as yes, no, or a number.</span></div>
+            <div class="glossary-item"><strong>Discovery</strong><span>The structured process of understanding the buyer’s goals, problems, priorities, and decision process.</span></div>
+            <div class="glossary-item"><strong>Feature</strong><span>A factual characteristic of a product or service.</span></div>
+            <div class="glossary-item"><strong>Need-payoff question</strong><span>A SPIN question that helps the buyer explain the value of solving a problem.</span></div>
+            <div class="glossary-item"><strong>Objection</strong><span>A concern or barrier that prevents the buyer from moving forward.</span></div>
+            <div class="glossary-item"><strong>Open-ended question</strong><span>A question that invites explanation rather than a one-word response.</span></div>
+            <div class="glossary-item"><strong>SPIN Selling</strong><span>A questioning framework using Situation, Problem, Implication, and Need-payoff questions.</span></div>
+            <div class="glossary-item"><strong>Trial close</strong><span>A low-pressure question used to test readiness or uncover remaining concerns.</span></div>
+            <div class="glossary-item"><strong>Value proposition</strong><span>A concise explanation of why a solution matters to this buyer and what result it can create.</span></div>
+            <div class="glossary-item"><strong>Walk-away point</strong><span>The limit beyond which accepting a deal is worse than choosing your alternative.</span></div>
+          </div></div>
+        </section>
+        <section class="playbook-section" data-section="faq">
+          <div class="card"><div class="section-label">Frequently asked questions</div>
+            <div class="faq-item"><button onclick="toggleFaq(this)">Who can access my recording?<i class="ti ti-chevron-down"></i></button><div class="faq-answer">You and an authorized instructor in your class can access the private audio connected to your saved session.</div></div>
+            <div class="faq-item"><button onclick="toggleFaq(this)">What if transcription makes a mistake?<i class="ti ti-chevron-down"></i></button><div class="faq-answer">Review the text before sending when possible. Speak clearly, reduce background noise, and record a shorter response if the transcript is inaccurate.</div></div>
+            <div class="faq-item"><button onclick="toggleFaq(this)">Can I repeat an assignment?<i class="ti ti-chevron-down"></i></button><div class="faq-answer">Your Assignments page shows your attempts. You may repeat an activity while attempts remain or when your instructor allows unlimited practice.</div></div>
+            <div class="faq-item"><button onclick="toggleFaq(this)">Is Competition part of my grade?<i class="ti ti-chevron-down"></i></button><div class="faq-answer">Competition is separate from Assignments unless your instructor explicitly tells the class otherwise.</div></div>
+            <div class="faq-item"><button onclick="toggleFaq(this)">Why did I receive this score?<i class="ti ti-chevron-down"></i></button><div class="faq-answer">Open your session report and compare the transcript and coaching with the Scoring Guide. Scores depend on demonstrated evidence across the full conversation.</div></div>
+            <div class="faq-item"><button onclick="toggleFaq(this)">What should I do after a low score?<i class="ti ti-chevron-down"></i></button><div class="faq-answer">Choose one skill from the report, review its Playbook definition, and repeat the scenario with that single improvement goal.</div></div>
+          </div>
+        </section>
+        <div id="playbook-empty" class="card empty-state" style="display:none;">No Playbook results match your search. Try a skill, term, or shorter phrase.</div>
+      </main>
+    </div>
   </div>
 </div>
 
@@ -2463,6 +2577,7 @@ function goTo(pageId){
   if(pageId==='page-student-dash') setTimeout(loadStudentDashboard,100);
   if(pageId==='page-student-assignments') setTimeout(loadAssignmentsAndHistory,100);
   if(pageId==='page-teacher-dash') setTimeout(loadTeacherDashboard,100);
+  if(pageId==='page-playbook') document.getElementById('playbook-search')?.focus();
 }
 
 function updateNav(pageId){
@@ -3964,6 +4079,27 @@ async function exportGrades(){
 window.addEventListener('beforeunload',event=>{
   if(document.getElementById('page-arena')?.classList.contains('active')&&APP.turnCount>0){event.preventDefault();event.returnValue='';}
 });
+
+function openPlaybook(section='getting-started'){
+  goTo('page-playbook');
+  const button=document.querySelector('[data-playbook="'+section+'"]');
+  showPlaybookSection(section,button);
+  const search=document.getElementById('playbook-search');if(search){search.value='';searchPlaybook('');}
+}
+function showPlaybookSection(section,button){
+  document.querySelectorAll('.playbook-section').forEach(s=>s.classList.toggle('active',s.dataset.section===section));
+  document.querySelectorAll('.playbook-menu button').forEach(b=>b.classList.toggle('active',b===button));
+  document.getElementById('playbook-empty').style.display='none';
+}
+function searchPlaybook(value){
+  const q=value.trim().toLowerCase(),sections=[...document.querySelectorAll('.playbook-section')],empty=document.getElementById('playbook-empty');
+  if(!q){sections.forEach((s,i)=>s.classList.toggle('active',i===0));document.querySelectorAll('.playbook-menu button').forEach((b,i)=>b.classList.toggle('active',i===0));empty.style.display='none';return;}
+  let matches=0;sections.forEach(s=>{const hit=s.textContent.toLowerCase().includes(q);s.classList.toggle('active',hit);if(hit)matches++;});
+  document.querySelectorAll('.playbook-menu button').forEach(b=>b.classList.remove('active'));empty.style.display=matches?'none':'block';
+  document.querySelectorAll('.glossary-item').forEach(item=>item.style.display=item.textContent.toLowerCase().includes(q)?'block':'none');
+}
+function toggleFaq(button){button.closest('.faq-item').classList.toggle('open');}
+
 /* ---- REAL DATA LOADERS ---- */
 async function loadStudentMetrics(){
   if(!APP.user) return;
