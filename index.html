@@ -750,7 +750,7 @@ body{background:linear-gradient(180deg,#f7f9fc 0,#f3f6fa 240px);}
     </div>
     <div id="dash-assignments"><div class="card empty-state">Loading your coursework…</div></div>
     <div class="dashboard-actions">
-      <button class="btn btn-navy" onclick="goTo('page-scenario')"><i class="ti ti-player-play"></i> Start free practice</button>
+      <button class="btn btn-navy" onclick="startFreePractice()"><i class="ti ti-player-play"></i> Start free practice</button>
       <button class="btn btn-outline" onclick="goTo('page-metrics')"><i class="ti ti-chart-bar"></i> Review performance</button>
       <button class="btn btn-outline" onclick="goTo('page-phrases')"><i class="ti ti-book"></i> Practice phrases</button>
     </div>
@@ -765,7 +765,7 @@ body{background:linear-gradient(180deg,#f7f9fc 0,#f3f6fa 240px);}
   <div class="wrap">
     <div class="hero-bar assignment-hero">
       <div><div class="hero-title">Your <span>assignments</span></div><div class="hero-sub">Required coursework from your instructor, separate from Competition Mode.</div></div>
-      <button class="btn btn-gold" onclick="goTo('page-scenario')"><i class="ti ti-player-play"></i> Free practice</button>
+      <button class="btn btn-gold" onclick="startFreePractice()"><i class="ti ti-player-play"></i> Free practice</button>
     </div>
     <div class="stats-grid stats-grid-4">
       <div class="stat-card gold-card"><div class="sc-label">Due soon</div><div class="sc-val" id="assign-due">0</div><div class="sc-sub">next 7 days</div></div>
@@ -1141,6 +1141,7 @@ body{background:linear-gradient(180deg,#f7f9fc 0,#f3f6fa 240px);}
       <div class="skill-detail-row"><span class="sdr-name">Objections</span><div class="sdr-bar"><div class="sdr-fill" style="width:60%;background:var(--amber)"></div></div><span class="sdr-val">6</span><span class="sdr-badge" style="background:var(--amber-bg);color:var(--amber);">Ok</span></div>
       <div class="skill-detail-row"><span class="sdr-name">Listening</span><div class="sdr-bar"><div class="sdr-fill" style="width:70%;background:var(--green)"></div></div><span class="sdr-val">7</span><span class="sdr-badge" style="background:var(--green-bg);color:var(--green);">Good</span></div>
     </div>
+    <div id="assignment-video-report" class="card" style="display:none;"><div class="section-label">Assignment video</div><div id="assignment-video-content">Loading recording…</div></div>
     <div id="interview-report" style="display:none;"></div>
     <div class="feedback-block strength"><div class="feedback-block-title">What you did well</div><div class="feedback-block-text" id="rc-strength">Excellent rapport building — you opened with a question that showed genuine curiosity about Marcus's business. Your value proposition was clear and specific, tying your service directly to his goal of getting more customers.</div></div>
     <div class="feedback-block improve"><div class="feedback-block-title">Focus on next time</div><div class="feedback-block-text" id="rc-improve">Your biggest gap is closing — you never explicitly asked for the next step. Even a simple "Can I set up a 20-minute demo call this week?" would have scored you 15+ more points. Watch filler words too.</div></div>
@@ -2501,6 +2502,10 @@ let APP={
   recordedVoice:false,
   cameraStream:null,
   cameraOn:false,
+  assignmentVideoRecorder:null,
+  assignmentVideoChunks:[],
+  assignmentVideoStartedAt:null,
+  assignmentVideoConsentAt:null,
   voiceEnabled:localStorage.getItem('osl_voice')!=='false',
   sessionTranscript:[],
   pendingRecordings:[],
@@ -2824,12 +2829,15 @@ function showBriefing(){
 }
 
 /* ---- SESSION ---- */
-function launchArena(){
-  startSession();
-}
+async function launchArena(){await startSession();}
 
-function startSession(){
+async function startSession(){
   if(!checkApiKey())return;
+  if(APP.activeAssignment){
+    const consent=window.confirm('This assigned session requires webcam and microphone recording. The recording will be saved with your assignment report and may be reviewed by your instructor. Select OK to consent and begin, or Cancel to return.');
+    if(!consent){toast('Assignment recording was not started.');return;}
+    if(!await startAssignmentVideoRecording())return;
+  }
   if(APP.selectedScenario==='interview') APP.selectedChar='sandra';
   const ch=CHARS[APP.selectedChar];
   const sc=SCENARIOS[APP.selectedScenario];
@@ -3010,7 +3018,8 @@ async function endSession(event){
   if(sessionSaveInProgress)return false;
   sessionSaveInProgress=true;
   if(APP.timerInterval){clearInterval(APP.timerInterval);APP.timerInterval=null;}
-  if(APP.cameraStream){APP.cameraStream.getTracks().forEach(t=>t.stop());APP.cameraOn=false;}
+  const assignmentVideo=await stopAssignmentVideoRecording();
+  if(APP.cameraStream){APP.cameraStream.getTracks().forEach(t=>t.stop());APP.cameraOn=false;APP.cameraStream=null;}
   // Save session to Supabase
   if(APP.user&&APP.profile){
     const duration=Math.floor((Date.now()-(APP.sessionStart||Date.now()))/1000);
@@ -3047,6 +3056,7 @@ async function endSession(event){
       if(sessionError)throw sessionError;
       if(!savedSession)throw new Error('The session was not returned after saving.');
       const recordingFailures=await uploadSessionRecordings(savedSession.id);
+      const videoFailure=assignmentVideo?await uploadAssignmentVideo(savedSession.id,assignmentVideo):null;
       // Update total practice time
       const {error:profileError}=await SB.from('profiles').update({
         total_practice_time:(APP.profile.total_practice_time||0)+duration,
@@ -3054,6 +3064,7 @@ async function endSession(event){
       }).eq('id',APP.user.id);
       if(profileError)throw profileError;
       if(recordingFailures)toast(recordingFailures+' audio response'+(recordingFailures===1?' was':'s were')+' not saved. The grade and transcript were saved.');
+      if(videoFailure)toast(videoFailure+' The grade, transcript, and feedback were still saved.');
     }catch(e){
       console.error('Session save error:',e);
       toast('Session could not be saved: '+(e.message||'Unknown error')+'. Please try again.');
@@ -3068,6 +3079,7 @@ async function endSession(event){
   }
   await loadStudentReport();
   goTo('page-report');
+  APP.activeAssignment=null;
   sessionSaveInProgress=false;
   return false;
 }
@@ -3265,30 +3277,43 @@ function toggleVoice(){
 }
 
 /* ---- CAMERA ---- */
+function videoOptions(){
+  for(const mimeType of ['video/webm;codecs=vp8,opus','video/mp4','video/webm'])if(MediaRecorder.isTypeSupported?.(mimeType))return {mimeType,videoBitsPerSecond:700000,audioBitsPerSecond:64000};
+  return {videoBitsPerSecond:700000,audioBitsPerSecond:64000};
+}
+function setCameraUi(recording=false){
+  const v=document.getElementById('video-el'),off=document.getElementById('video-off-overlay'),rec=document.getElementById('rec-dot-wrap'),btn=document.getElementById('cam-btn');
+  v.srcObject=APP.cameraStream;v.style.display=APP.cameraStream?'block':'none';off.style.display=APP.cameraStream?'none':'flex';rec.style.display=recording?'flex':'none';
+  if(recording){rec.innerHTML='<div class="rec-dot"></div>RECORDING';btn.innerHTML='<i class="ti ti-lock"></i> Assignment recording active';btn.disabled=true;}
+  else{btn.disabled=false;btn.innerHTML=APP.cameraOn?'<i class="ti ti-video-off"></i> Stop preview':'<i class="ti ti-video"></i> Start camera preview';}
+}
+async function startAssignmentVideoRecording(){
+  if(!APP.activeAssignment)return true;
+  if(!window.MediaRecorder||!navigator.mediaDevices?.getUserMedia){toast('This browser cannot record assignment video.');return false;}
+  try{
+    APP.cameraStream=await navigator.mediaDevices.getUserMedia({video:{width:{ideal:640},height:{ideal:480},frameRate:{ideal:24,max:30},facingMode:'user'},audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
+    APP.cameraOn=true;APP.assignmentVideoChunks=[];APP.assignmentVideoConsentAt=new Date().toISOString();APP.assignmentVideoStartedAt=Date.now();
+    const r=APP.assignmentVideoRecorder=new MediaRecorder(APP.cameraStream,videoOptions());
+    r.ondataavailable=e=>{if(e.data?.size)APP.assignmentVideoChunks.push(e.data)};r.start(1000);setCameraUi(true);return true;
+  }catch(e){console.error(e);if(APP.cameraStream)APP.cameraStream.getTracks().forEach(t=>t.stop());APP.cameraStream=null;APP.cameraOn=false;setCameraUi();toast('Camera and microphone permission are required for assigned sessions.');return false;}
+}
+async function stopAssignmentVideoRecording(){
+  const r=APP.assignmentVideoRecorder;if(!r)return null;
+  return new Promise(resolve=>{const done=()=>{const mimeType=r.mimeType||APP.assignmentVideoChunks[0]?.type||'video/webm',blob=new Blob(APP.assignmentVideoChunks,{type:mimeType});APP.assignmentVideoRecorder=null;APP.assignmentVideoChunks=[];setCameraUi();resolve(blob.size?{blob,mimeType,consentedAt:APP.assignmentVideoConsentAt,durationSeconds:Math.round((Date.now()-APP.assignmentVideoStartedAt)/1000)}:null)};if(r.state==='inactive')done();else{r.addEventListener('stop',done,{once:true});r.stop();}});
+}
+async function uploadAssignmentVideo(sessionId,v){
+  try{
+    if(!APP.activeAssignment)return 'Video was not uploaded because this was not an assignment.';
+    if(v.blob.size>150*1024*1024)return 'Assignment video exceeded the 150 MB limit.';
+    const ext=v.mimeType.includes('mp4')?'mp4':'webm',path=`${APP.user.id}/${sessionId}/assignment-video.${ext}`;
+    const up=await SB.storage.from('assignment-videos').upload(path,v.blob,{contentType:v.mimeType,upsert:false});if(up.error)throw up.error;
+    const row=await SB.from('session_videos').insert({session_id:sessionId,assignment_id:APP.activeAssignment,student_id:APP.user.id,storage_path:path,mime_type:v.mimeType,size_bytes:v.blob.size,duration_seconds:v.durationSeconds,consented_at:v.consentedAt});if(row.error)throw row.error;return null;
+  }catch(e){console.error(e);return 'The assignment video could not be uploaded.';}
+}
 async function toggleCamera(){
-  if(APP.cameraOn){
-    if(APP.cameraStream)APP.cameraStream.getTracks().forEach(t=>t.stop());
-    APP.cameraOn=false;APP.cameraStream=null;
-    const vid=document.getElementById('video-el');
-    vid.style.display='none';vid.srcObject=null;
-    document.getElementById('video-off-overlay').style.display='flex';
-    document.getElementById('rec-dot-wrap').style.display='none';
-    const cb=document.getElementById('cam-btn');
-    cb.innerHTML='<i class="ti ti-video"></i> Start camera';
-    cb.classList.remove('active');
-  } else {
-    try{
-      APP.cameraStream=await navigator.mediaDevices.getUserMedia({video:true,audio:false});
-      const vid=document.getElementById('video-el');
-      vid.srcObject=APP.cameraStream;vid.style.display='block';
-      document.getElementById('video-off-overlay').style.display='none';
-      document.getElementById('rec-dot-wrap').style.display='flex';
-      APP.cameraOn=true;
-      const cb=document.getElementById('cam-btn');
-      cb.innerHTML='<i class="ti ti-video-off"></i> Stop camera';
-      cb.classList.add('active');
-    }catch(e){toast('Camera access denied  -  check browser permissions.');}
-  }
+  if(APP.assignmentVideoRecorder?.state==='recording'){toast('Camera recording stays on until this assignment is submitted.');return;}
+  if(APP.cameraOn){APP.cameraStream?.getTracks().forEach(t=>t.stop());APP.cameraStream=null;APP.cameraOn=false;setCameraUi();return;}
+  try{APP.cameraStream=await navigator.mediaDevices.getUserMedia({video:{width:{ideal:640},height:{ideal:480},facingMode:'user'},audio:false});APP.cameraOn=true;setCameraUi();}catch(e){toast('Camera access denied - check browser permissions.');}
 }
 
 /* ---- LEADERBOARD ---- */
@@ -3510,6 +3535,7 @@ async function viewSessionPlayback(sessionId){
   if(!session) return;
 
   const {data:recordings}=await SB.from('session_recordings').select('*').eq('session_id',sessionId).order('response_index');
+  const {data:assignmentVideo}=await SB.from('session_videos').select('*').eq('session_id',sessionId).maybeSingle();
 
   // Populate playback page
   const transcript=document.querySelector('#page-playback .transcript-scroll');
@@ -3541,7 +3567,10 @@ async function viewSessionPlayback(sessionId){
 
   const player=document.querySelector('#page-playback .video-player-box');
   if(player){
-    if(recordings?.length){
+    if(assignmentVideo){
+      const u=await SB.storage.from('assignment-videos').createSignedUrl(assignmentVideo.storage_path,3600);
+      player.innerHTML=u.data?.signedUrl?'<video controls controlsList="nodownload" disablepictureinpicture playsinline src="'+u.data.signedUrl+'" style="width:100%;height:100%;object-fit:contain;background:#000"></video>':'<div style="color:#fff">Assignment video unavailable.</div>';
+    }else if(recordings?.length){
       const sources=[];
       for(const recording of recordings){
         const {data}=await SB.storage.from('session-recordings').createSignedUrl(recording.storage_path,3600);
@@ -4032,6 +4061,7 @@ function formatDue(value){
   if(!value)return 'No deadline';
   const d=new Date(value+'T12:00:00');return 'Due '+d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
 }
+function startFreePractice(){APP.activeAssignment=null;goTo('page-scenario');}
 function startAssignment(id,scenario,character,product){
   APP.activeAssignment=id;APP.selectedScenario=scenario||'cold';APP.selectedChar=character||'marcus';
   const productKey=Object.keys(PRODUCTS).find(k=>PRODUCTS[k]===product);if(productKey){const sel=document.getElementById('product-select');if(sel)sel.value=productKey;}
@@ -4081,7 +4111,7 @@ function renderSessionHistory(sessions){
   if(!sessions.length){host.innerHTML='<div class="card empty-state">Completed sessions will appear here with a saved report.</div>';return;}
   host.innerHTML=sessions.map(s=>'<div class="assign-card"><div class="assign-icon">'+assignmentIcon(s.scenario)+'</div><div class="assign-body"><div class="assign-title">'+escapeHtml(SCENARIOS[s.scenario]?.name||s.scenario)+'</div><div class="assign-sub">'+new Date(s.created_at).toLocaleString()+' · '+formatDuration(s.duration_seconds||0)+'</div></div><div class="assign-right"><span class="tag tag-gold">'+(s.overall_score??'—')+'/100</span><button class="btn btn-outline" onclick="openSavedReport(\''+s.id+'\')">View report</button></div></div>').join('');
 }
-async function openSavedReport(id){await loadStudentReport(id);goTo('page-report');}
+async async function openSavedReport(id){await loadStudentReport(id);goTo('page-report');}
 async function loadTeacherDashboard(){
   if(!APP.user||APP.role!=='teacher')return;
   const code=APP.profile?.class_code||'SALESFALL26';
@@ -4286,6 +4316,11 @@ function renderReportSkills(session,isInterview){
     if(badge){badge.textContent=score>=8?'Strong':score>=6?'Good':score>=4?'Developing':'Needs work';badge.style.background=score>=7?'var(--green-bg)':score>=5?'var(--amber-bg)':'var(--red-bg)';badge.style.color=score>=7?'var(--green)':score>=5?'var(--amber)':'var(--red)';}
   });
 }
+async function renderAssignmentVideo(session){
+  const wrap=document.getElementById('assignment-video-report'),host=document.getElementById('assignment-video-content');
+  if(!session.assignment_id){wrap.style.display='none';host.innerHTML='';return}wrap.style.display='block';host.textContent='Loading assignment recording…';
+  try{const q=await SB.from('session_videos').select('*').eq('session_id',session.id).maybeSingle();if(q.error)throw q.error;if(!q.data){host.textContent='No assignment video was saved for this attempt.';return}const u=await SB.storage.from('assignment-videos').createSignedUrl(q.data.storage_path,3600);if(u.error)throw u.error;host.innerHTML='<video controls controlsList="nodownload" disablepictureinpicture playsinline preload="metadata" src="'+u.data.signedUrl+'" style="width:100%;max-height:520px;border-radius:10px;background:#000"></video><div style="margin-top:8px;font-size:11px;color:var(--text-3)">Private assignment recording · link expires in one hour</div>'}catch(e){console.error(e);host.textContent='Assignment video is temporarily unavailable.'}
+}
 function renderInterviewReport(session){
   const host=document.getElementById('interview-report');
   if(!host)return;
@@ -4331,6 +4366,7 @@ async function loadStudentReport(sessionId=null){
 
     if(!sessions||!sessions.length) return;
     const s=sessions[0];
+    await renderAssignmentVideo(s);
     renderInterviewReport(s);
 
     // Update report card with real data
