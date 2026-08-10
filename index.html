@@ -182,7 +182,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text
 .char-card{background:var(--white);border:2px solid var(--border);border-radius:var(--radius-lg);padding:16px;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:14px;}
 .char-card:hover{border-color:var(--navy-3);}
 .char-card.selected{border-color:var(--gold);background:var(--gold-light);}
-.char-avatar-wrap{width:52px;height:52px;border-radius:50%;flex-shrink:0;overflow:hidden;}
+.char-avatar-wrap{width:60px;height:60px;border-radius:50%;flex-shrink:0;overflow:hidden;border:2px solid rgba(10,32,68,0.12);background:var(--surface);}
+.buyer-photo{width:100%;height:100%;display:block;object-fit:cover;object-position:center 32%;}
 .char-name{font-size:14px;font-weight:700;color:var(--text);}
 .char-role{font-size:12px;color:var(--text-2);margin-top:1px;}
 .diff-badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px;margin-top:5px;}
@@ -238,7 +239,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text
 .send-btn-arena:disabled{opacity:0.4;cursor:not-allowed;}
 /* Arena left panel */
 .char-panel{text-align:center;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.1);}
-.char-panel-avatar{width:68px;height:68px;border-radius:50%;margin:0 auto 8px;border:3px solid var(--gold);overflow:hidden;}
+.char-panel-avatar{width:88px;height:88px;border-radius:50%;margin:0 auto 10px;border:3px solid var(--gold);overflow:hidden;background:var(--surface);transition:box-shadow .2s ease,transform .2s ease;}
+.char-panel-avatar.is-speaking{animation:buyer-speaking 1.4s ease-in-out infinite;}
+@keyframes buyer-speaking{0%,100%{box-shadow:0 0 0 3px rgba(232,179,16,.25),0 0 14px rgba(232,179,16,.2);transform:scale(1)}50%{box-shadow:0 0 0 7px rgba(232,179,16,.12),0 0 26px rgba(232,179,16,.5);transform:scale(1.025)}}
 .char-panel-name{font-size:13px;font-weight:700;color:var(--white);}
 .char-panel-role{font-size:10px;color:rgba(255,255,255,0.45);margin-top:2px;}
 .mood-track{height:4px;background:rgba(255,255,255,0.1);border-radius:2px;overflow:hidden;margin-top:6px;}
@@ -894,19 +897,19 @@ body{background:linear-gradient(180deg,#f7f9fc 0,#f3f6fa 240px);}
     <div class="section-label">Choose your customer</div>
     <div class="char-grid">
       <div class="char-card selected" id="char-card-marcus" onclick="selectChar('marcus',this)">
-        <div class="char-avatar-wrap"><?xml version="1.0"?><svg viewBox="0 0 52 52" xmlns="http://www.w3.org/2000/svg"><circle cx="26" cy="26" r="26" fill="#B5D4F4"/><ellipse cx="26" cy="44" rx="14" ry="10" fill="#378ADD"/><circle cx="26" cy="20" r="10" fill="#FAC775"/><ellipse cx="22" cy="19" rx="1.5" ry="1.8" fill="#2C2C2A"/><ellipse cx="30" cy="19" rx="1.5" ry="1.8" fill="#2C2C2A"/><path d="M21 24 Q26 28 31 24" stroke="#BA7517" stroke-width="1.2" fill="none" stroke-linecap="round"/><rect x="14" y="13" width="24" height="4" rx="2" fill="#444441"/></svg></div>
+        <div class="char-avatar-wrap"><img class="buyer-photo" src="assets/buyers/marcus-rivera.webp" alt="Marcus Rivera, small business owner"></div>
         <div><div class="char-name">Marcus Rivera</div><div class="char-role">Small business owner</div><div class="diff-badge diff-beginner">Beginner</div></div>
       </div>
       <div class="char-card" id="char-card-sandra" onclick="selectChar('sandra',this)">
-        <div class="char-avatar-wrap"><svg viewBox="0 0 52 52" xmlns="http://www.w3.org/2000/svg"><circle cx="26" cy="26" r="26" fill="#E9D5FF"/><ellipse cx="26" cy="44" rx="14" ry="10" fill="#7C3AED"/><circle cx="26" cy="20" r="10" fill="#FBBF24"/><ellipse cx="22" cy="19" rx="1.5" ry="1.8" fill="#2C2C2A"/><ellipse cx="30" cy="19" rx="1.5" ry="1.8" fill="#2C2C2A"/><path d="M22 24 Q26 27 30 24" stroke="#92400E" stroke-width="1.2" fill="none" stroke-linecap="round"/><path d="M16 14 Q26 10 36 14" stroke="#7C3AED" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg></div>
+        <div class="char-avatar-wrap"><img class="buyer-photo" src="assets/buyers/sandra-chen.webp" alt="Sandra Chen, corporate office manager"></div>
         <div><div class="char-name">Sandra Chen</div><div class="char-role">Corporate office manager</div><div class="diff-badge diff-intermediate">Intermediate</div></div>
       </div>
       <div class="char-card" id="char-card-derek" onclick="selectChar('derek',this)">
-        <div class="char-avatar-wrap"><svg viewBox="0 0 52 52" xmlns="http://www.w3.org/2000/svg"><circle cx="26" cy="26" r="26" fill="#FEF3C7"/><ellipse cx="26" cy="44" rx="14" ry="10" fill="#D97706"/><circle cx="26" cy="20" r="10" fill="#D4A574"/><ellipse cx="22" cy="19" rx="1.5" ry="1.8" fill="#2C2C2A"/><ellipse cx="30" cy="19" rx="1.5" ry="1.8" fill="#2C2C2A"/><path d="M22 23 Q26 25 30 23" stroke="#92400E" stroke-width="1.2" fill="none" stroke-linecap="round"/><rect x="18" y="12" width="16" height="5" rx="2.5" fill="#92400E"/></svg></div>
+        <div class="char-avatar-wrap"><img class="buyer-photo" src="assets/buyers/derek-washington.webp" alt="Derek Washington, restaurant owner"></div>
         <div><div class="char-name">Derek Washington</div><div class="char-role">Restaurant owner</div><div class="diff-badge diff-intermediate">Intermediate</div></div>
       </div>
       <div class="char-card" id="char-card-patricia" onclick="selectChar('patricia',this)">
-        <div class="char-avatar-wrap"><svg viewBox="0 0 52 52" xmlns="http://www.w3.org/2000/svg"><circle cx="26" cy="26" r="26" fill="#FCE7F3"/><ellipse cx="26" cy="44" rx="14" ry="10" fill="#BE185D"/><circle cx="26" cy="20" r="10" fill="#FBBF24"/><ellipse cx="22" cy="19" rx="1.5" ry="1.8" fill="#2C2C2A"/><ellipse cx="30" cy="19" rx="1.5" ry="1.8" fill="#2C2C2A"/><path d="M22 24 Q26 26 30 24" stroke="#92400E" stroke-width="1.2" fill="none" stroke-linecap="round"/><path d="M18 14 Q26 11 34 14 Q32 18 26 19 Q20 18 18 14Z" fill="#9CA3AF"/></svg></div>
+        <div class="char-avatar-wrap"><img class="buyer-photo" src="assets/buyers/patricia-moore.webp" alt="Patricia Moore, retired entrepreneur"></div>
         <div><div class="char-name">Patricia Moore</div><div class="char-role">Retired entrepreneur</div><div class="diff-badge diff-advanced">Advanced</div></div>
       </div>
     </div>
@@ -2533,23 +2536,32 @@ let APP={
   isSpeaking:false,
 };
 
-const CHAR_VOICES={marcus:'fable',sandra:'nova',derek:'onyx',patricia:'shimmer'};
+// Region-neutral American English voices. Keep this mapping explicit so new
+// personas do not silently inherit a non-American default voice.
+const CHAR_VOICES={marcus:'alloy',sandra:'nova',derek:'onyx',patricia:'shimmer'};
 
 
 const CHARS={
-  marcus:{name:'Marcus Rivera',role:'Small business owner',diff:'Beginner',mood:60,
+  marcus:{name:'Marcus Rivera',role:'Small business owner',diff:'Beginner',mood:60,photo:'assets/buyers/marcus-rivera.webp',
     svg:`<svg viewBox="0 0 52 52" xmlns="http://www.w3.org/2000/svg"><circle cx="26" cy="26" r="26" fill="#B5D4F4"/><ellipse cx="26" cy="44" rx="14" ry="10" fill="#378ADD"/><circle cx="26" cy="20" r="10" fill="#FAC775"/><ellipse cx="22" cy="19" rx="1.5" ry="1.8" fill="#2C2C2A"/><ellipse cx="30" cy="19" rx="1.5" ry="1.8" fill="#2C2C2A"/><path d="M21 24 Q26 28 31 24" stroke="#BA7517" stroke-width="1.2" fill="none" stroke-linecap="round"/><rect x="14" y="13" width="24" height="4" rx="2" fill="#444441"/></svg>`,
-    system:`You are Marcus Rivera, a friendly small business owner. You're open to hearing pitches but busy and value your time. Warm and conversational but need real convincing.`},
-  sandra:{name:'Sandra Chen',role:'Corporate office manager',diff:'Intermediate',mood:40,
+    system:`You are Marcus Rivera, a friendly small business owner. You're open to hearing pitches but busy and value your time. Warm and conversational but need real convincing. Speak in natural, region-neutral American English.`},
+  sandra:{name:'Sandra Chen',role:'Corporate office manager',diff:'Intermediate',mood:40,photo:'assets/buyers/sandra-chen.webp',
     svg:`<svg viewBox="0 0 52 52" xmlns="http://www.w3.org/2000/svg"><circle cx="26" cy="26" r="26" fill="#E9D5FF"/><ellipse cx="26" cy="44" rx="14" ry="10" fill="#7C3AED"/><circle cx="26" cy="20" r="10" fill="#FBBF24"/><ellipse cx="22" cy="19" rx="1.5" ry="1.8" fill="#2C2C2A"/><ellipse cx="30" cy="19" rx="1.5" ry="1.8" fill="#2C2C2A"/><path d="M22 24 Q26 27 30 24" stroke="#92400E" stroke-width="1.2" fill="none" stroke-linecap="round"/><path d="M16 14 Q26 10 36 14" stroke="#7C3AED" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg>`,
-    system:`You are Sandra Chen, a polite but skeptical corporate office manager. You ask tough questions and have a formal vendor selection process. Not easily impressed.`},
-  derek:{name:'Derek Washington',role:'Restaurant owner',diff:'Intermediate',mood:35,
+    system:`You are Sandra Chen, a polite but skeptical corporate office manager. You ask tough questions and have a formal vendor selection process. Not easily impressed. Speak in natural, region-neutral American English.`},
+  derek:{name:'Derek Washington',role:'Restaurant owner',diff:'Intermediate',mood:35,photo:'assets/buyers/derek-washington.webp',
     svg:`<svg viewBox="0 0 52 52" xmlns="http://www.w3.org/2000/svg"><circle cx="26" cy="26" r="26" fill="#FEF3C7"/><ellipse cx="26" cy="44" rx="14" ry="10" fill="#D97706"/><circle cx="26" cy="20" r="10" fill="#D4A574"/><ellipse cx="22" cy="19" rx="1.5" ry="1.8" fill="#2C2C2A"/><ellipse cx="30" cy="19" rx="1.5" ry="1.8" fill="#2C2C2A"/><path d="M22 23 Q26 25 30 23" stroke="#92400E" stroke-width="1.2" fill="none" stroke-linecap="round"/><rect x="18" y="12" width="16" height="5" rx="2.5" fill="#92400E"/></svg>`,
-    system:`You are Derek Washington, a blunt restaurant owner who is price-focused and no-nonsense. You've been burned by vendors before and ask direct questions about ROI.`},
-  patricia:{name:'Patricia Moore',role:'Retired entrepreneur',diff:'Advanced',mood:30,
+    system:`You are Derek Washington, a blunt restaurant owner who is price-focused and no-nonsense. You've been burned by vendors before and ask direct questions about ROI. Speak in natural, region-neutral American English.`},
+  patricia:{name:'Patricia Moore',role:'Retired entrepreneur',diff:'Advanced',mood:30,photo:'assets/buyers/patricia-moore.webp',
     svg:`<svg viewBox="0 0 52 52" xmlns="http://www.w3.org/2000/svg"><circle cx="26" cy="26" r="26" fill="#FCE7F3"/><ellipse cx="26" cy="44" rx="14" ry="10" fill="#BE185D"/><circle cx="26" cy="20" r="10" fill="#FBBF24"/><ellipse cx="22" cy="19" rx="1.5" ry="1.8" fill="#2C2C2A"/><ellipse cx="30" cy="19" rx="1.5" ry="1.8" fill="#2C2C2A"/><path d="M22 24 Q26 26 30 24" stroke="#92400E" stroke-width="1.2" fill="none" stroke-linecap="round"/><path d="M18 14 Q26 11 34 14 Q32 18 26 19 Q20 18 18 14Z" fill="#9CA3AF"/></svg>`,
-    system:`You are Patricia Moore, a retired entrepreneur with 30 years of experience. Detail-oriented, probing questions, very hard to close. You've heard every pitch.`},
+    system:`You are Patricia Moore, a retired entrepreneur with 30 years of experience. Detail-oriented, probing questions, very hard to close. You've heard every pitch. Speak in natural, region-neutral American English.`},
 };
+
+function characterAvatar(character){
+  if(character&&character.photo){
+    return `<img class="buyer-photo" src="${character.photo}" alt="" loading="eager">`;
+  }
+  return character?.svg||'';
+}
 
 const SCENARIOS={
   cold:{icon:'📞',name:'Cold call',sub:'No prior relationship'},
@@ -2824,7 +2836,7 @@ function startSession(){
   const ch=CHARS[APP.selectedChar];
   const sc=SCENARIOS[APP.selectedScenario];
   const prod=PRODUCTS[document.getElementById('product-select').value]||'marketing services';
-  document.getElementById('arena-char-avatar').innerHTML=ch.svg;
+  document.getElementById('arena-char-avatar').innerHTML=characterAvatar(ch);
   document.getElementById('arena-char-name').textContent=ch.name;
   document.getElementById('arena-char-role').textContent=ch.role;
   document.getElementById('arena-sc-icon').textContent=sc.icon;
@@ -3051,7 +3063,7 @@ function addChatMsg(type,text,wasVoice=false){
   div.className='msg'+(type==='student'?' student-msg':'');
   const ch=CHARS[APP.selectedChar]||CHARS.marcus;
   if(type==='char'){
-    div.innerHTML=`<div class="msg-avatar">${ch.svg}</div><div class="bubble bubble-char">${text}</div>`;
+    div.innerHTML=`<div class="msg-avatar">${characterAvatar(ch)}</div><div class="bubble bubble-char">${text}</div>`;
   } else if(type==='student'){
     const vt=wasVoice?`<div class="voice-tag"><i class="ti ti-microphone" style="font-size:10px"></i> voice</div>`:'';
     const init=APP.user?APP.user.initials:'JS';
@@ -3080,7 +3092,7 @@ function addTypingIndicator(){
   const div=document.createElement('div');
   div.className='msg';div.id='typing-ind';
   const ch=CHARS[APP.selectedChar]||CHARS.marcus;
-  div.innerHTML=`<div class="msg-avatar">${ch.svg}</div><div class="typing-bubble"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>`;
+  div.innerHTML=`<div class="msg-avatar">${characterAvatar(ch)}</div><div class="typing-bubble"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>`;
   area.appendChild(div);area.scrollTop=area.scrollHeight;
 }
 function removeTypingIndicator(){const el=document.getElementById('typing-ind');if(el)el.remove();}
@@ -3187,7 +3199,7 @@ async function speakAsCharacter(text){
   APP.isSpeaking=true;
   setSpeakingState(true);
   try{
-    const voice=CHAR_VOICES[APP.selectedChar]||'fable';
+    const voice=CHAR_VOICES[APP.selectedChar]||'alloy';
     const clean=text.replace(/Rapport:\d+[^|]*/gi,'').replace(/Fillers:[^\n]*/gi,'').replace(/Mood:[^\n]*/gi,'').trim();
     const ttsData=await callAI('tts',{voice,text:clean});
     const audioBytes=Uint8Array.from(atob(ttsData.audio),c=>c.charCodeAt(0));
@@ -3212,7 +3224,7 @@ function stopSpeaking(){
 
 function setSpeakingState(speaking){
   const avatar=document.getElementById('arena-char-avatar');
-  if(avatar){avatar.style.boxShadow=speaking?'0 0 0 4px #E8B310, 0 0 20px rgba(232,179,16,0.4)':'';}
+  if(avatar){avatar.classList.toggle('is-speaking',speaking);}
   const indicator=document.getElementById('speaking-indicator');
   if(indicator){indicator.style.display=speaking?'flex':'none';}
   const stopBtn=document.getElementById('stop-speak-btn');
