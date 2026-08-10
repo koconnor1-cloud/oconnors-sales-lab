@@ -71,8 +71,8 @@ alter table public.competition_entries enable row level security;
 create policy "Class members view competitions" on public.competitions for select to authenticated
 using (exists (select 1 from public.profiles p where p.id=(select auth.uid()) and p.class_code=competitions.class_code));
 create policy "Teachers manage own competitions" on public.competitions for all to authenticated
-using (teacher_id=(select auth.uid()) and public.current_sales_lab_role()='teacher')
-with check (teacher_id=(select auth.uid()) and class_code=public.current_sales_lab_class() and public.current_sales_lab_role()='teacher');
+using (teacher_id=(select auth.uid()) and exists (select 1 from public.profiles p where p.id=(select auth.uid()) and p.role='teacher'))
+with check (teacher_id=(select auth.uid()) and class_code=(select p.class_code from public.profiles p where p.id=(select auth.uid())) and exists (select 1 from public.profiles p where p.id=(select auth.uid()) and p.role='teacher'));
 
 create policy "Class members view competition rounds" on public.competition_rounds for select to authenticated
 using (exists (select 1 from public.competitions c join public.profiles p on p.class_code=c.class_code where c.id=competition_rounds.competition_id and p.id=(select auth.uid())));
@@ -85,7 +85,7 @@ using (
   student_id=(select auth.uid()) or exists (
     select 1 from public.competition_rounds r join public.competitions c on c.id=r.competition_id
     where r.id=competition_entries.round_id and r.results_released
-      and c.class_code=public.current_sales_lab_class()
+      and c.class_code=(select p.class_code from public.profiles p where p.id=(select auth.uid()))
   ) or exists (
     select 1 from public.competition_rounds r join public.competitions c on c.id=r.competition_id
     where r.id=competition_entries.round_id and c.teacher_id=(select auth.uid())
@@ -97,7 +97,7 @@ with check (
   and exists (select 1 from public.sessions s where s.id=session_id and s.student_id=(select auth.uid()))
   and exists (
     select 1 from public.competition_rounds r join public.competitions c on c.id=r.competition_id
-    where r.id=round_id and r.status='open' and c.status='active' and c.class_code=public.current_sales_lab_class()
+    where r.id=round_id and r.status='open' and c.status='active' and c.class_code=(select p.class_code from public.profiles p where p.id=(select auth.uid()))
       and (
         r.round_number=1 or exists (
           select 1 from public.competition_rounds prior
