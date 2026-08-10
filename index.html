@@ -1141,6 +1141,7 @@ body{background:linear-gradient(180deg,#f7f9fc 0,#f3f6fa 240px);}
       <div class="skill-detail-row"><span class="sdr-name">Objections</span><div class="sdr-bar"><div class="sdr-fill" style="width:60%;background:var(--amber)"></div></div><span class="sdr-val">6</span><span class="sdr-badge" style="background:var(--amber-bg);color:var(--amber);">Ok</span></div>
       <div class="skill-detail-row"><span class="sdr-name">Listening</span><div class="sdr-bar"><div class="sdr-fill" style="width:70%;background:var(--green)"></div></div><span class="sdr-val">7</span><span class="sdr-badge" style="background:var(--green-bg);color:var(--green);">Good</span></div>
     </div>
+    <div id="interview-report" style="display:none;"></div>
     <div class="feedback-block strength"><div class="feedback-block-title">What you did well</div><div class="feedback-block-text" id="rc-strength">Excellent rapport building — you opened with a question that showed genuine curiosity about Marcus's business. Your value proposition was clear and specific, tying your service directly to his goal of getting more customers.</div></div>
     <div class="feedback-block improve"><div class="feedback-block-title">Focus on next time</div><div class="feedback-block-text" id="rc-improve">Your biggest gap is closing — you never explicitly asked for the next step. Even a simple "Can I set up a 20-minute demo call this week?" would have scored you 15+ more points. Watch filler words too.</div></div>
     <div class="card">
@@ -2542,6 +2543,7 @@ let APP={
   pendingRecordings:[],
   currentAudio:null,
   isSpeaking:false,
+  interviewFeedback:[],
 };
 
 // Region-neutral American English voices. Keep this mapping explicit so new
@@ -2883,6 +2885,7 @@ function startSession(){
   APP.pendingRecordings=[];
   APP.skillScores={};
   APP.lastCoachFeedback='';
+  APP.interviewFeedback=[];
   APP.fillers={um:0,like:0,youknow:0,so:0,basically:0};
   resetArenaMetrics();
   document.getElementById('chat-area').innerHTML='';
@@ -2965,6 +2968,7 @@ async function sendMessage(){
     if(charText){addChatMsg('char',charText);speakAsCharacter(charText);}
     if(coachText){
       APP.lastCoachFeedback=coachText;
+      if(APP.selectedScenario==='interview') APP.interviewFeedback.push({question:INTERVIEW_QUESTIONS[Math.max(0,APP.turnCount-1)]||'',feedback:coachText});
       addChatMsg('coach',coachText);
       parseCoachScores(coachText);
     }
@@ -3074,7 +3078,7 @@ async function endSession(event){
         turn_count:APP.turnCount,
         duration_seconds:duration,
         transcript:APP.sessionTranscript||[],
-        ai_feedback:APP.lastCoachFeedback||null,
+        ai_feedback:APP.selectedScenario==='interview'?JSON.stringify({version:1,type:'interview',feedback:APP.interviewFeedback||[]}):(APP.lastCoachFeedback||null),
         assignment_id:APP.activeAssignment||null,
       }).select('id').single();
       if(sessionError)throw sessionError;
@@ -4228,6 +4232,80 @@ async function loadStudentMetrics(){
   }catch(e){console.log('Metrics load error:',e.message);}
 }
 
+
+function interviewFeedbackData(raw){
+  if(!raw)return [];
+  try{
+    const parsed=typeof raw==='string'?JSON.parse(raw):raw;
+    return Array.isArray(parsed?.feedback)?parsed.feedback:[];
+  }catch(e){return raw?[{question:'Overall interview',feedback:String(raw)}]:[];}
+}
+function cleanCoachFeedback(text){
+  return String(text||'')
+    .replace(/\bScores:\s*[\s\S]*?(?=\bFiller counts:|\bFillers:|\bMood shift:|\bMood:|$)/gi,'')
+    .replace(/\bFiller counts:\s*[^\n]*/gi,'')
+    .replace(/\bFillers:\s*[^\n]*/gi,'')
+    .replace(/\bMood shift:\s*[^\n]*/gi,'')
+    .replace(/\bMood:\s*[^\n]*/gi,'')
+    .replace(/\|/g,' ').replace(/\s+/g,' ').trim();
+}
+function scoreBand(score){
+  if(score>=85)return {label:'Interview ready',color:'var(--green)',bg:'var(--green-bg)'};
+  if(score>=70)return {label:'Nearly interview ready',color:'var(--gold)',bg:'var(--gold-light)'};
+  return {label:'Developing interview readiness',color:'var(--amber)',bg:'var(--amber-bg)'};
+}
+function renderReportSkills(session,isInterview){
+  const values=[
+    session.rapport,session.clarity,session.confidence,session.close_score,
+    session.discovery,session.value_prop,session.objections,session.listening
+  ];
+  const salesLabels=['Rapport','Clarity','Confidence','Close attempt','Discovery Qs','Value prop','Objections','Listening'];
+  const interviewLabels=['Professionalism','Clarity','Confidence','Interview readiness','Answer relevance','Specific examples','Composure','Responsiveness'];
+  document.querySelectorAll('#page-report .skill-detail-row').forEach((row,index)=>{
+    const score=Number(values[index])||0,label=(isInterview?interviewLabels:salesLabels)[index];
+    const name=row.querySelector('.sdr-name'),fill=row.querySelector('.sdr-fill'),value=row.querySelector('.sdr-val'),badge=row.querySelector('.sdr-badge');
+    if(name)name.textContent=label;
+    if(fill){fill.style.width=(score*10)+'%';fill.style.background=score>=7?'var(--green)':score>=5?'var(--amber)':'var(--red)';}
+    if(value)value.textContent=score||'—';
+    if(badge){badge.textContent=score>=8?'Strong':score>=6?'Good':score>=4?'Developing':'Needs work';badge.style.background=score>=7?'var(--green-bg)':score>=5?'var(--amber-bg)':'var(--red-bg)';badge.style.color=score>=7?'var(--green)':score>=5?'var(--amber)':'var(--red)';}
+  });
+}
+function renderInterviewReport(session){
+  const host=document.getElementById('interview-report');
+  if(!host)return;
+  const isInterview=session.scenario==='interview';
+  host.style.display=isInterview?'block':'none';
+  renderReportSkills(session,isInterview);
+  if(!isInterview)return;
+  const score=Number(session.overall_score)||0,band=scoreBand(score);
+  const dimensions=[
+    ['Professionalism',Number(session.rapport)||0,'Maintain a polished, employer-focused tone.'],
+    ['Clarity',Number(session.clarity)||0,'Organize answers around one clear point.'],
+    ['Confidence',Number(session.confidence)||0,'Use direct language and reduce qualifiers.'],
+    ['Interview readiness',Number(session.close_score)||0,'Connect your full interview into a convincing candidacy.'],
+    ['Answer relevance',Number(session.discovery)||0,'Answer the exact question before adding context.'],
+    ['Specific examples',Number(session.value_prop)||0,'Support claims with a situation, action, and result.'],
+    ['Composure',Number(session.objections)||0,'Pause, think, and respond steadily to difficult questions.'],
+    ['Responsiveness',Number(session.listening)||0,'Show that you understood what the interviewer asked.']
+  ];
+  const ranked=[...dimensions].sort((a,b)=>b[1]-a[1]),strongest=ranked[0],priorities=[...dimensions].sort((a,b)=>a[1]-b[1]).slice(0,3);
+  const answers=(session.transcript||[]).filter(item=>item.role==='student');
+  const feedback=interviewFeedbackData(session.ai_feedback);
+  const questionCards=INTERVIEW_QUESTIONS.map((question,index)=>{
+    const answer=answers[index]?.text||'No answer recorded.';
+    const coaching=cleanCoachFeedback(feedback[index]?.feedback||'Review this answer for clarity, specificity, and relevance.');
+    return '<div style="padding:14px 0;'+(index?'border-top:1px solid var(--border);':'')+'"><div style="display:flex;gap:10px;align-items:flex-start;"><div style="width:26px;height:26px;border-radius:50%;background:var(--navy);color:var(--gold-2);display:flex;align-items:center;justify-content:center;font:700 11px DM Mono,monospace;flex-shrink:0;">'+(index+1)+'</div><div style="min-width:0;"><div style="font-size:13px;font-weight:700;color:var(--navy);">'+escapeHtml(question)+'</div><div style="font-size:12px;color:var(--text-2);line-height:1.55;margin-top:5px;"><strong>Your answer:</strong> '+escapeHtml(answer)+'</div><div style="font-size:12px;color:var(--text);line-height:1.55;margin-top:6px;padding:9px 11px;background:var(--gold-light);border-radius:8px;"><strong>Coach:</strong> '+escapeHtml(coaching)+'</div></div></div></div>';
+  }).join('');
+  host.innerHTML=
+    '<div class="card" style="border-left:4px solid '+band.color+';"><div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap;"><div><div class="section-label">Hiring-readiness assessment</div><div style="font-size:20px;font-weight:700;color:var(--navy);">'+band.label+'</div><div style="font-size:13px;color:var(--text-2);line-height:1.6;margin-top:5px;max-width:680px;">Your strongest area was <strong>'+escapeHtml(strongest[0])+'</strong> ('+strongest[1]+'/10). The fastest improvement will come from strengthening <strong>'+escapeHtml(priorities[0][0])+'</strong> ('+priorities[0][1]+'/10).</div></div><span class="tag" style="background:'+band.bg+';color:'+band.color+';font-size:12px;">'+score+'/100</span></div></div>'+
+    '<div class="card"><div class="section-label">Priority action plan</div>'+priorities.map((item,index)=>'<div style="display:flex;gap:10px;align-items:flex-start;padding:'+(index?'10px':'2px')+' 0;'+(index?'border-top:1px solid var(--border);':'')+'"><div style="font-weight:700;color:var(--gold);">'+(index+1)+'</div><div style="font-size:13px;line-height:1.55;"><strong>'+escapeHtml(item[0])+' ('+item[1]+'/10):</strong> '+escapeHtml(item[2])+'</div></div>').join('')+'</div>'+
+    '<div class="card"><div class="section-label">Question-by-question coaching</div>'+questionCards+'</div>';
+  const strength=document.getElementById('rc-strength'),improve=document.getElementById('rc-improve'),tips=document.getElementById('rc-tips');
+  if(strength)strength.textContent='Your strongest interview dimension was '+strongest[0]+'. Your answers showed the most hiring value when you were direct, relevant, and specific.';
+  if(improve)improve.textContent='Focus first on '+priorities[0][0]+'. '+priorities[0][2]+' Then practice the same eight questions again and compare your new score.';
+  if(tips)tips.innerHTML=priorities.slice(0,2).map((item,index)=>'<div style="display:flex;align-items:flex-start;gap:10px;font-size:13px;"><div style="width:22px;height:22px;background:var(--navy-light);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--navy);flex-shrink:0;">'+(index+1)+'</div><div><strong>'+escapeHtml(item[0])+':</strong> '+escapeHtml(item[2])+'</div></div>').join('');
+}
+
 async function loadStudentReport(sessionId=null){
   if(!APP.user) return;
   try{
@@ -4237,16 +4315,17 @@ async function loadStudentReport(sessionId=null){
 
     if(!sessions||!sessions.length) return;
     const s=sessions[0];
+    renderInterviewReport(s);
 
     // Update report card with real data
     const rcScore=document.getElementById('rc-score');
     if(rcScore) rcScore.textContent=s.overall_score||' - ';
 
     const rcTitle=document.getElementById('rc-title');
-    if(rcTitle) rcTitle.textContent=`Session complete  -  ${s.scenario}`;
+    if(rcTitle) rcTitle.textContent=s.scenario==='interview'?'Mock interview complete':`Session complete  -  ${SCENARIOS[s.scenario]?.name||s.scenario}`;
 
     const rcSub=document.getElementById('rc-sub');
-    if(rcSub) rcSub.textContent=`${s.character_id} · ${s.product} · ${s.turn_count||0} turns · ${formatDuration(s.duration_seconds||0)}`;
+    if(rcSub) rcSub.textContent=s.scenario==='interview'?`Sandra Chen · ${s.turn_count||0} of 8 questions answered · ${formatDuration(s.duration_seconds||0)}`:`${CHARS[s.character_id]?.name||s.character_id} · ${s.product} · ${s.turn_count||0} turns · ${formatDuration(s.duration_seconds||0)}`;
 
     const rcFillers=document.getElementById('rc-fillers');
     if(rcFillers) rcFillers.textContent=s.filler_words||0;
