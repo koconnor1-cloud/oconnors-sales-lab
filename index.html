@@ -458,6 +458,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text
 .s-name-cell{display:flex;align-items:center;gap:8px;}
 .s-avatar{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;}
 .score-chip{display:inline-block;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:700;font-family:'DM Mono',monospace;}
+.review-card{background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius-lg);padding:18px;margin-bottom:12px;}
+.review-card.flagged{border-color:#F6AD55}.review-grid{display:grid;grid-template-columns:130px 1fr 220px;gap:16px;align-items:start}
+.evidence-list{display:flex;flex-direction:column;gap:7px;margin-top:10px}.evidence-item{font-size:12px;line-height:1.5;padding:8px 10px;background:var(--surface);border-radius:8px}
+.grade-status{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;padding:5px 9px;border-radius:999px}.grade-pending{background:var(--amber-bg);color:var(--amber)}.grade-approved{background:var(--green-bg);color:var(--green)}
+@media(max-width:760px){.review-grid{grid-template-columns:1fr}.review-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}}
 .chip-high{background:var(--green-bg);color:var(--green);}
 .chip-mid{background:var(--amber-bg);color:var(--amber);}
 .chip-low{background:var(--red-bg);color:var(--red);}
@@ -2244,6 +2249,7 @@ body{background:linear-gradient(180deg,#f7f9fc 0,#f3f6fa 240px);}
         </div>
       </div>
       <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end;">
+        <button class="btn btn-gold" onclick="goTo('page-grade-review')"><i class="ti ti-clipboard-check"></i> Review grades <span id="review-count-chip"></span></button>
         <button class="btn btn-gold" onclick="goTo('page-assign')"><i class="ti ti-plus"></i> Assign scenario</button>
         <button class="btn btn-outline-white" onclick="exportGrades()"><i class="ti ti-download"></i> Export grades</button>
         <button class="btn btn-outline-white" onclick="toast('Leaderboard revealed to all students!')"><i class="ti ti-eye"></i> Reveal leaderboard</button>
@@ -2254,7 +2260,7 @@ body{background:linear-gradient(180deg,#f7f9fc 0,#f3f6fa 240px);}
       <div class="stat-card gold-card"><div class="sc-label">Sessions today</div><div class="sc-val">37</div><div class="sc-sub">attempts</div></div>
       <div class="stat-card"><div class="sc-label">Class avg score</div><div class="sc-val">71</div><div class="sc-sub">out of 100</div></div>
       <div class="stat-card"><div class="sc-label">Total practice time</div><div class="sc-val">14h</div><div class="sc-sub">this week</div></div>
-      <div class="stat-card red-card"><div class="sc-label">Need attention</div><div class="sc-val">3</div><div class="sc-sub">flagged</div></div>
+      <div class="stat-card red-card"><div class="sc-label">Awaiting approval</div><div class="sc-val" id="teacher-review-count">0</div><div class="sc-sub">graded assignments</div></div>
     </div>
     <div class="alert-banner">
       <i class="ti ti-alert-triangle" style="font-size:18px;color:var(--red);flex-shrink:0;"></i>
@@ -2524,6 +2530,26 @@ body{background:linear-gradient(180deg,#f7f9fc 0,#f3f6fa 240px);}
 <div id="toast"></div>
 
 <!-- ============================================================
+     INSTRUCTOR GRADE REVIEW
+     ============================================================ -->
+<div class="page" id="page-grade-review">
+  <div class="wrap">
+    <div class="hero-bar" style="display:flex;justify-content:space-between;align-items:center;gap:18px;">
+      <div><div class="hero-title">Instructor <span>grade approval</span></div><div class="hero-sub">AI recommendations remain private until you approve the official grade.</div></div>
+      <button class="btn btn-outline-white" onclick="goTo('page-teacher-dash')"><i class="ti ti-arrow-left"></i> Dashboard</button>
+    </div>
+    <div class="stats-grid stats-grid-4">
+      <div class="stat-card gold-card"><div class="sc-label">Awaiting review</div><div class="sc-val" id="review-pending">0</div></div>
+      <div class="stat-card"><div class="sc-label">Low confidence</div><div class="sc-val" id="review-low-confidence">0</div></div>
+      <div class="stat-card"><div class="sc-label">Flagged</div><div class="sc-val" id="review-flagged">0</div></div>
+      <div class="stat-card"><div class="sc-label">Approved today</div><div class="sc-val" id="review-approved-today">0</div></div>
+    </div>
+    <div class="card" style="font-size:12px;line-height:1.6;"><strong>Approval rule:</strong> compare the recommendation with its transcript evidence, adjust any criterion that needs faculty judgment, then approve. Students see “Awaiting instructor approval” until you release the final grade.</div>
+    <div id="grade-review-list"><div class="card empty-state">Loading assignments awaiting approval…</div></div>
+  </div>
+</div>
+
+<!-- ============================================================
      JAVASCRIPT
      ============================================================ -->
 <script>
@@ -2655,6 +2681,7 @@ function goTo(pageId){
   if(pageId==='page-student-dash') setTimeout(loadStudentDashboard,100);
   if(pageId==='page-student-assignments') setTimeout(loadAssignmentsAndHistory,100);
   if(pageId==='page-teacher-dash') setTimeout(loadTeacherDashboard,100);
+  if(pageId==='page-grade-review') setTimeout(loadGradeReviewQueue,100);
   if(pageId==='page-competition') setTimeout(loadShowdown,100);
   if(pageId==='page-playbook') document.getElementById('playbook-search')?.focus();
 }
@@ -2684,6 +2711,7 @@ function updateNav(pageId){
   } else {
     const tabs=[
       {id:'page-teacher-dash',label:'Dashboard',icon:'ti-layout-dashboard'},
+      {id:'page-grade-review',label:'Grade Review',icon:'ti-clipboard-check'},
       {id:'page-assign',label:'Assignments',icon:'ti-clipboard-check'},
       {id:'page-analytics',label:'Analytics',icon:'ti-chart-dots'},
       {id:'page-competition',label:'Argo Sales Showdown',icon:'ti-trophy'},
@@ -3065,6 +3093,49 @@ function parseCoachScores(text){
   }
 }
 
+const EVIDENCE_RUBRIC={
+  cold:[['opening',10,'Earn attention, establish relevance, and respect the prospect’s time'],['discovery',20,'Ask purposeful questions and uncover a business need'],['listening',15,'Respond accurately to buyer statements and follow up'],['value',15,'Connect value to an expressed need without unsupported claims'],['objections',15,'Clarify, acknowledge, answer, and confirm concerns'],['communication',15,'Be clear, concise, professional, and buyer-centered'],['next_step',10,'Request a specific, authority-appropriate next step']],
+  demo:[['agenda',10,'Confirm priorities and set a buyer-centered agenda'],['discovery',15,'Validate needs before demonstrating'],['value',25,'Link features to the buyer’s stated outcomes'],['evidence',10,'Use accurate proof and avoid invented claims'],['engagement',15,'Check understanding and invite buyer participation'],['objections',15,'Address questions and concerns credibly'],['next_step',10,'Confirm fit and a concrete next step']],
+  objection:[['clarify',15,'Clarify the real concern before responding'],['empathy',15,'Acknowledge the concern without defensiveness'],['response',25,'Give a relevant, accurate, buyer-specific response'],['evidence',10,'Use support without exaggeration or invented facts'],['confirmation',15,'Check whether the response resolved the concern'],['communication',10,'Remain composed, concise, and professional'],['next_step',10,'Advance the conversation appropriately']],
+  close:[['summary',15,'Summarize agreed needs and value'],['readiness',15,'Recognize buying signals and unresolved concerns'],['ask',25,'Make a clear, direct, authority-appropriate commitment request'],['objections',15,'Handle final hesitation without pressure'],['specificity',15,'Define owner, action, and timing for the next step'],['communication',15,'Use confident, ethical, buyer-centered language']],
+  elevator:[['hook',15,'Open with a relevant, memorable hook'],['problem',15,'Name a credible problem or opportunity'],['value',25,'State a differentiated and audience-relevant value proposition'],['proof',10,'Use accurate credibility or evidence'],['clarity',20,'Be concise, natural, and easy to understand'],['call_to_action',15,'End with a specific invitation or next step']],
+  product:[['needs',15,'Identify how the product fits the buyer’s operation'],['benefits',25,'Translate features into buyer-relevant benefits'],['differentiation',15,'Explain meaningful and supportable differentiation'],['roi',15,'Discuss value, cost, or switching implications accurately'],['objections',15,'Address concerns credibly'],['next_step',15,'Request an appropriate commitment']],
+  interview:[['professionalism',15,'Present professionally and build appropriate rapport'],['relevance',15,'Answer the question asked and connect to the role'],['examples',20,'Use specific, credible examples and results'],['clarity',15,'Organize concise, understandable responses'],['composure',10,'Respond confidently under pressure'],['responsiveness',10,'Listen and adapt to interviewer cues'],['readiness',15,'Demonstrate preparation, self-awareness, and fit']]
+};
+
+function safeJson(text){
+  const cleaned=String(text||'').replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'');
+  const start=cleaned.indexOf('{'),end=cleaned.lastIndexOf('}');
+  if(start<0||end<start)throw new Error('Scorer returned no structured result');
+  return JSON.parse(cleaned.slice(start,end+1));
+}
+
+async function evaluateCompleteSession(liveScore){
+  const rubric=EVIDENCE_RUBRIC[APP.selectedScenario]||EVIDENCE_RUBRIC.cold;
+  const transcript=(APP.sessionTranscript||[]).map((e,i)=>(i+1)+'. '+(e.role==='student'?'SELLER':'BUYER')+': '+e.text).join('\n');
+  if(!transcript.trim())return {recommended_score:liveScore,confidence:0,criteria:[],strengths:[],priority_improvement:'No transcript was available.',flags:['missing_transcript']};
+  const prompt=`You are a conservative faculty grading assistant. Evaluate the COMPLETE role-play, not isolated turns. Do not award points for keywords. Award points only when the selling function is demonstrated and cite exact short transcript evidence. Do not infer an uncovered need unless the buyer expressed it. Penalize invented product claims, repetitive or leading questions, seller domination, and a close beyond the buyer's authority. Return insufficient_evidence when a criterion cannot be judged.
+
+SCENARIO: ${SCENARIOS[APP.selectedScenario]?.name||APP.selectedScenario}
+BUYER: ${CHARS[APP.selectedChar]?.name}; ${CHARS[APP.selectedChar]?.role}; ${CHARS[APP.selectedChar]?.system}
+PRODUCT: ${PRODUCTS[document.getElementById('product-select')?.value||'social']||'Unknown'}
+OBJECTIVE: ${SCENARIO_BRIEFS[APP.selectedScenario]?.mission||''}
+RUBRIC: ${JSON.stringify(rubric.map(r=>({id:r[0],max:r[1],standard:r[2]})))}
+TRANSCRIPT:\n${transcript}
+
+Return JSON only: {"recommended_score":0,"confidence":0.00,"criteria":[{"id":"","score":0,"max":0,"evidence":"exact excerpt or insufficient_evidence","reason":"brief judgment","coaching":"one next action"}],"strengths":["",""],"priority_improvement":"","flags":[]}. The total must equal the sum of criterion scores. Confidence below .75 or missing evidence must create a review flag.`;
+  const data=await callAI('chat',{messages:[{role:'system',content:'Return valid JSON only.'},{role:'user',content:prompt}],max_tokens:2200});
+  const result=safeJson(data.choices?.[0]?.message?.content);
+  const criteria=Array.isArray(result.criteria)?result.criteria:[];
+  const sum=criteria.reduce((n,c)=>n+(Number(c.score)||0),0);
+  result.recommended_score=Math.max(0,Math.min(100,sum||Number(result.recommended_score)||liveScore||0));
+  result.confidence=Math.max(0,Math.min(1,Number(result.confidence)||0));
+  result.flags=Array.isArray(result.flags)?result.flags:[];
+  if(result.confidence<.75&&!result.flags.includes('low_confidence'))result.flags.push('low_confidence');
+  if(criteria.some(c=>!c.evidence||c.evidence==='insufficient_evidence')&&!result.flags.includes('insufficient_evidence'))result.flags.push('insufficient_evidence');
+  return result;
+}
+
 function resetArenaMetrics(){
   ['rapport','clarity','confidence','close','discovery','valueprop','objections','listening'].forEach(k=>{
     const am=document.getElementById('am-'+k);if(am){am.textContent=' - ';am.className='am-val am-none';}
@@ -3102,6 +3173,13 @@ async function endSession(event){
     };
     const prod=PRODUCTS[document.getElementById('product-select')?.value||'social']||'Social media marketing';
     try{
+      toast('Reviewing the complete conversation and gathering transcript evidence…');
+      let evaluation;
+      try{evaluation=await evaluateCompleteSession(overall);}catch(scoringError){
+        console.error('Full-session scoring error:',scoringError);
+        evaluation={recommended_score:overall,confidence:0,criteria:[],strengths:[],priority_improvement:'Instructor review required because automated full-session scoring was unavailable.',flags:['scoring_unavailable']};
+      }
+      const isGradedAssignment=!!APP.activeAssignment;
       const {data:savedSession,error:sessionError}=await SB.from('sessions').insert({
         student_id:APP.user.id,
         scenario:APP.selectedScenario,
@@ -3123,6 +3201,12 @@ async function endSession(event){
         transcript:APP.sessionTranscript||[],
         ai_feedback:APP.selectedScenario==='interview'?JSON.stringify({version:1,type:'interview',feedback:APP.interviewFeedback||[]}):(APP.lastCoachFeedback||null),
         assignment_id:APP.activeAssignment||null,
+        scoring_version:'evidence-v1',
+        recommended_score:evaluation.recommended_score,
+        scoring_confidence:evaluation.confidence,
+        scoring_evidence:evaluation,
+        review_flags:evaluation.flags||[],
+        grading_status:isGradedAssignment?'awaiting_instructor':'practice_feedback',
       }).select('id').single();
       if(sessionError)throw sessionError;
       if(!savedSession)throw new Error('The session was not returned after saving.');
@@ -3144,6 +3228,7 @@ async function endSession(event){
       }).eq('id',APP.user.id);
       if(profileError)throw profileError;
       if(recordingFailures)toast(recordingFailures+' audio response'+(recordingFailures===1?' was':'s were')+' not saved. The grade and transcript were saved.');
+      if(isGradedAssignment)toast('AI recommendation complete. Your assignment is awaiting instructor approval.');
     }catch(e){
       console.error('Session save error:',e);
       toast('Session could not be saved: '+(e.message||'Unknown error')+'. Please try again.');
@@ -4177,7 +4262,13 @@ function renderAssignmentCards(assignments,container,compact=false,sessions=[]){
 function renderSessionHistory(sessions){
   const host=document.getElementById('session-history');if(!host)return;
   if(!sessions.length){host.innerHTML='<div class="card empty-state">Completed sessions will appear here with a saved report.</div>';return;}
-  host.innerHTML=sessions.map(s=>'<div class="assign-card"><div class="assign-icon">'+assignmentIcon(s.scenario)+'</div><div class="assign-body"><div class="assign-title">'+escapeHtml(SCENARIOS[s.scenario]?.name||s.scenario)+'</div><div class="assign-sub">'+new Date(s.created_at).toLocaleString()+' · '+formatDuration(s.duration_seconds||0)+'</div></div><div class="assign-right"><span class="tag tag-gold">'+(s.overall_score??'—')+'/100</span><button class="btn btn-outline" onclick="openSavedReport(\''+s.id+'\')">View report</button></div></div>').join('');
+  host.innerHTML=sessions.map(s=>{
+    const graded=s.grading_status==='approved';
+    const pending=s.grading_status==='awaiting_instructor';
+    const score=graded?s.final_grade:s.overall_score;
+    const status=pending?'<span class="grade-status grade-pending"><i class="ti ti-clock"></i> Awaiting instructor approval</span>':graded?'<span class="grade-status grade-approved"><i class="ti ti-check"></i> Final grade approved</span>':'<span class="tag tag-navy">Practice feedback</span>';
+    return '<div class="assign-card"><div class="assign-icon">'+assignmentIcon(s.scenario)+'</div><div class="assign-body"><div class="assign-title">'+escapeHtml(SCENARIOS[s.scenario]?.name||s.scenario)+'</div><div class="assign-sub">'+new Date(s.created_at).toLocaleString()+' · '+formatDuration(s.duration_seconds||0)+'</div><div style="margin-top:7px">'+status+'</div></div><div class="assign-right"><span class="tag tag-gold">'+(score??'—')+'/100</span><button class="btn btn-outline" onclick="openSavedReport(\''+s.id+'\')">View report</button></div></div>';
+  }).join('');
 }
 async function openSavedReport(id){await loadStudentReport(id);goTo('page-report');}
 async function loadTeacherDashboard(){
@@ -4187,6 +4278,48 @@ async function loadTeacherDashboard(){
   const chip=document.getElementById('teacher-class-code');if(chip)chip.textContent=code;
   STUDENT_DATA.length=0;await renderStudentTable();
   const banner=document.querySelector('#page-teacher-dash .alert-banner');if(banner)banner.innerHTML='<i class="ti ti-shield-check" style="font-size:18px;color:var(--green)"></i><div><div style="font-size:13px;font-weight:700;">Live classroom data</div><div style="font-size:12px;color:var(--text-2);">Student records will appear here only when authorized for your class.</div></div>';
+  const {count}=await SB.from('sessions').select('id',{count:'exact',head:true}).eq('grading_status','awaiting_instructor');
+  const n=count||0;document.getElementById('teacher-review-count').textContent=n;
+  const reviewChip=document.getElementById('review-count-chip');if(reviewChip)reviewChip.textContent=n?'('+n+')':'';
+}
+
+let reviewQueueCache=[];
+async function loadGradeReviewQueue(){
+  if(!APP.user||APP.role!=='teacher')return;
+  const host=document.getElementById('grade-review-list');host.innerHTML='<div class="card empty-state">Loading assignments awaiting approval…</div>';
+  const {data:sessions,error}=await SB.from('sessions').select('*').in('grading_status',['awaiting_instructor','approved']).order('created_at',{ascending:false});
+  if(error){host.innerHTML='<div class="card empty-state">The review queue could not be loaded. Apply the evidence-scoring database update, then refresh.</div>';return;}
+  const rows=sessions||[],ids=[...new Set(rows.map(s=>s.student_id))];
+  const {data:profiles}=ids.length?await SB.from('profiles').select('id,full_name').in('id',ids):{data:[]};
+  const names=Object.fromEntries((profiles||[]).map(p=>[p.id,p.full_name]));
+  reviewQueueCache=rows.map(s=>({...s,student_name:names[s.student_id]||'Student'}));
+  const pending=reviewQueueCache.filter(s=>s.grading_status==='awaiting_instructor');
+  const today=new Date().toDateString();
+  document.getElementById('review-pending').textContent=pending.length;
+  document.getElementById('review-low-confidence').textContent=pending.filter(s=>Number(s.scoring_confidence)<.75).length;
+  document.getElementById('review-flagged').textContent=pending.filter(s=>(s.review_flags||[]).length).length;
+  document.getElementById('review-approved-today').textContent=reviewQueueCache.filter(s=>s.grading_status==='approved'&&s.reviewed_at&&new Date(s.reviewed_at).toDateString()===today).length;
+  if(!pending.length){host.innerHTML='<div class="card empty-state"><i class="ti ti-circle-check" style="font-size:28px;color:var(--green)"></i><br><strong>You are caught up.</strong><br>No graded assignments are awaiting approval.</div>';return;}
+  host.innerHTML=pending.map(renderGradeReviewCard).join('');
+}
+function renderGradeReviewCard(s){
+  const e=s.scoring_evidence||{},criteria=Array.isArray(e.criteria)?e.criteria:[],flags=s.review_flags||[];
+  const evidence=criteria.map(c=>'<div class="evidence-item"><strong>'+escapeHtml(c.id)+' · '+(c.score??0)+'/'+(c.max??0)+'</strong><br><span style="color:var(--text-2)">“'+escapeHtml(c.evidence||'Insufficient evidence')+'”</span><br>'+escapeHtml(c.reason||'')+'</div>').join('');
+  return '<article class="review-card '+(flags.length?'flagged':'')+'" id="review-'+s.id+'"><div class="review-grid"><div><div class="sc-label">AI recommendation</div><div class="sc-val" style="font-size:34px">'+(s.recommended_score??'—')+'</div><div class="sc-sub">Confidence '+Math.round(Number(s.scoring_confidence||0)*100)+'%</div>'+(flags.length?'<div class="assign-tags" style="margin-top:8px">'+flags.map(f=>'<span class="tag tag-amber">'+escapeHtml(f.replaceAll('_',' '))+'</span>').join('')+'</div>':'')+'</div><div><div style="font-size:15px;font-weight:700">'+escapeHtml(s.student_name)+'</div><div class="assign-sub">'+escapeHtml(SCENARIOS[s.scenario]?.name||s.scenario)+' · '+new Date(s.created_at).toLocaleString()+'</div><div class="evidence-list">'+evidence+'</div><button class="btn-sm" style="margin-top:10px" onclick="viewSessionPlayback(\''+s.id+'\')"><i class="ti ti-player-play"></i> Review transcript & audio</button></div><div class="review-actions"><div class="form-field"><label>Final grade</label><input id="grade-'+s.id+'" type="number" min="0" max="100" value="'+(s.recommended_score??'')+'"></div><div class="form-field"><label>Instructor feedback</label><textarea id="feedback-'+s.id+'" rows="5" placeholder="Optional note or reason for adjustment"></textarea></div><button class="btn btn-navy btn-full" onclick="approveRecommendedGrade(\''+s.id+'\')"><i class="ti ti-check"></i> Approve & release</button><button class="btn btn-outline btn-full" style="margin-top:7px" onclick="returnGradeForReview(\''+s.id+'\')">Return / hold</button></div></div></article>';
+}
+async function approveRecommendedGrade(id){
+  const grade=Number(document.getElementById('grade-'+id).value),feedback=document.getElementById('feedback-'+id).value.trim();
+  if(!Number.isInteger(grade)||grade<0||grade>100){toast('Enter a whole-number grade from 0 to 100.');return;}
+  const {error}=await SB.rpc('approve_session_grade',{p_session_id:id,p_final_grade:grade,p_instructor_feedback:feedback||null});
+  if(error){toast('Grade could not be approved: '+error.message);return;}
+  toast('Final grade approved and released to the student.');await loadGradeReviewQueue();
+}
+async function returnGradeForReview(id){
+  const feedback=document.getElementById('feedback-'+id).value.trim();
+  if(!feedback){toast('Add a short note explaining why this attempt is being held.');return;}
+  const {error}=await SB.rpc('return_session_for_review',{p_session_id:id,p_instructor_feedback:feedback});
+  if(error){toast('Attempt could not be returned: '+error.message);return;}
+  toast('Attempt held for faculty review.');await loadGradeReviewQueue();
 }
 
 function showdownRoundLabel(round){return 'Round '+round.round_number+' · '+escapeHtml(round.name);}
@@ -4561,13 +4694,21 @@ async function loadStudentReport(sessionId=null){
 
     // Update report card with real data
     const rcScore=document.getElementById('rc-score');
-    if(rcScore) rcScore.textContent=s.overall_score||' - ';
+    const displayedScore=s.grading_status==='approved'?s.final_grade:s.overall_score;
+    if(rcScore) rcScore.textContent=displayedScore??' - ';
 
     const rcTitle=document.getElementById('rc-title');
     if(rcTitle) rcTitle.textContent=s.scenario==='interview'?'Mock interview complete':`Session complete  -  ${SCENARIOS[s.scenario]?.name||s.scenario}`;
 
     const rcSub=document.getElementById('rc-sub');
-    if(rcSub) rcSub.textContent=s.scenario==='interview'?`Sandra Chen · ${s.turn_count||0} of 8 questions answered · ${formatDuration(s.duration_seconds||0)}`:`${CHARS[s.character_id]?.name||s.character_id} · ${s.product} · ${s.turn_count||0} turns · ${formatDuration(s.duration_seconds||0)}`;
+    if(rcSub){
+      const base=s.scenario==='interview'?`Sandra Chen · ${s.turn_count||0} of 8 questions answered · ${formatDuration(s.duration_seconds||0)}`:`${CHARS[s.character_id]?.name||s.character_id} · ${s.product} · ${s.turn_count||0} turns · ${formatDuration(s.duration_seconds||0)}`;
+      const status=s.grading_status==='awaiting_instructor'?' · AI feedback complete — awaiting instructor approval':s.grading_status==='approved'?' · Final grade approved':' · Practice feedback';
+      rcSub.textContent=base+status;
+    }
+    const evidence=s.scoring_evidence||{};
+    if(evidence.strengths?.length){const el=document.getElementById('rc-strength');if(el)el.textContent=evidence.strengths.join(' ');}
+    if(evidence.priority_improvement){const el=document.getElementById('rc-improve');if(el)el.textContent=evidence.priority_improvement;}
 
     const rcFillers=document.getElementById('rc-fillers');
     if(rcFillers) rcFillers.textContent=s.filler_words||0;
