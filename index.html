@@ -2546,12 +2546,14 @@ let APP={
 // Region-neutral American English voices. Keep this mapping explicit so new
 // personas do not silently inherit a non-American default voice.
 const CHAR_VOICES={marcus:'onyx',sandra:'nova',derek:'onyx',patricia:'shimmer'};
+// Marcus keeps his natural pitch while speaking at a more energetic cadence.
+const CHAR_VOICE_PLAYBACK={marcus:{rate:1.15}};
 
 
 const CHARS={
   marcus:{name:'Marcus Rivera',role:'Small business owner',diff:'Beginner',mood:60,photo:'assets/buyers/marcus-rivera.webp',
     svg:`<svg viewBox="0 0 52 52" xmlns="http://www.w3.org/2000/svg"><circle cx="26" cy="26" r="26" fill="#B5D4F4"/><ellipse cx="26" cy="44" rx="14" ry="10" fill="#378ADD"/><circle cx="26" cy="20" r="10" fill="#FAC775"/><ellipse cx="22" cy="19" rx="1.5" ry="1.8" fill="#2C2C2A"/><ellipse cx="30" cy="19" rx="1.5" ry="1.8" fill="#2C2C2A"/><path d="M21 24 Q26 28 31 24" stroke="#BA7517" stroke-width="1.2" fill="none" stroke-linecap="round"/><rect x="14" y="13" width="24" height="4" rx="2" fill="#444441"/></svg>`,
-    system:`You are Marcus Rivera, a friendly small business owner. You're open to hearing pitches but busy and value your time. Warm and conversational but need real convincing. Speak in natural, region-neutral American English.`},
+    system:`You are Marcus Rivera, a friendly small business owner. You're open to hearing pitches but busy and value your time. Warm and conversational but need real convincing. Sound upbeat and engaged, using varied sentence rhythm and positive energy without becoming exaggerated. Speak in natural, region-neutral American English.`},
   sandra:{name:'Sandra Chen',role:'Corporate office manager',diff:'Intermediate',mood:40,photo:'assets/buyers/sandra-chen.webp',
     svg:`<svg viewBox="0 0 52 52" xmlns="http://www.w3.org/2000/svg"><circle cx="26" cy="26" r="26" fill="#E9D5FF"/><ellipse cx="26" cy="44" rx="14" ry="10" fill="#7C3AED"/><circle cx="26" cy="20" r="10" fill="#FBBF24"/><ellipse cx="22" cy="19" rx="1.5" ry="1.8" fill="#2C2C2A"/><ellipse cx="30" cy="19" rx="1.5" ry="1.8" fill="#2C2C2A"/><path d="M22 24 Q26 27 30 24" stroke="#92400E" stroke-width="1.2" fill="none" stroke-linecap="round"/><path d="M16 14 Q26 10 36 14" stroke="#7C3AED" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg>`,
     system:`You are Sandra Chen, a polite but skeptical corporate office manager. You ask tough questions and have a formal vendor selection process. Not easily impressed. Speak in natural, region-neutral American English.`},
@@ -3213,6 +3215,11 @@ async function speakAsCharacter(text){
     const audioBlob=new Blob([audioBytes],{type:'audio/mpeg'});
     const audioUrl=URL.createObjectURL(audioBlob);
     APP.currentAudio=new Audio(audioUrl);
+    const playback=CHAR_VOICE_PLAYBACK[APP.selectedChar];
+    if(playback){
+      APP.currentAudio.preservesPitch=true;
+      APP.currentAudio.playbackRate=playback.rate;
+    }
     APP.currentAudio.onended=()=>{APP.isSpeaking=false;setSpeakingState(false);URL.revokeObjectURL(audioUrl);};
     APP.currentAudio.onerror=()=>{APP.isSpeaking=false;setSpeakingState(false);};
     await APP.currentAudio.play();
