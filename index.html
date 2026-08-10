@@ -296,6 +296,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text
 .report-tag{font-size:11px;padding:3px 9px;border-radius:6px;font-weight:600;background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.75);display:inline-block;margin:2px 3px 2px 0;}
 .report-tag.gold-tag{background:rgba(201,152,10,0.25);color:var(--gold-2);}
 .metrics-quad{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;}
+.practice-plan-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+.practice-plan-item{padding:14px;border:1px solid var(--border);border-radius:var(--radius);background:var(--white);}
+.practice-plan-value{font:700 22px 'DM Mono',monospace;color:var(--navy);margin:5px 0 3px;}
+.target-status{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:999px;font-size:10px;font-weight:700;}
+.target-on{color:var(--green);background:var(--green-bg);}.target-developing{color:var(--amber);background:var(--amber-bg);}.target-needs{color:var(--red);background:var(--red-bg);}
+.target-table{width:100%;border-collapse:collapse;font-size:12px;}.target-table th,.target-table td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--border);vertical-align:top;}.target-table th{color:var(--text-3);font-size:10px;text-transform:uppercase;letter-spacing:.05em;}.target-table tr:last-child td{border-bottom:0;}
+.practice-reminder{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;margin-bottom:16px;border:1px solid var(--gold-border);border-radius:var(--radius);background:var(--gold-light);font-size:12px;color:var(--text-2);line-height:1.55;}
+.benchmark-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}.benchmark-item{padding:10px;background:var(--surface);border-radius:var(--radius);}.benchmark-item strong{display:block;font-size:12px;color:var(--navy);margin-bottom:3px;}.benchmark-item span{font-size:11px;color:var(--text-2);}
 .mq-card{background:var(--surface);border-radius:var(--radius);padding:12px;text-align:center;}
 .mq-val{font-size:22px;font-weight:700;font-family:'DM Mono',monospace;color:var(--navy);}
 .mq-val.good{color:var(--green);}.mq-val.mid{color:var(--amber);}.mq-val.bad{color:var(--red);}
@@ -540,6 +548,7 @@ body{background:linear-gradient(180deg,#f7f9fc 0,#f3f6fa 240px);}
   .auth-features{margin-bottom:0;}
   .auth-right{padding:30px 22px;}
   .stats-grid-4,.stats-grid-5,.metrics-quad{grid-template-columns:repeat(2,1fr);}
+  .practice-plan-grid,.benchmark-grid{grid-template-columns:repeat(2,1fr);}
   .hero-bar{padding:22px;align-items:flex-start!important;gap:16px;}
   .streak-pill{display:none;}
   .assign-card{align-items:flex-start;flex-wrap:wrap;padding:16px;}
@@ -899,6 +908,7 @@ body{background:linear-gradient(180deg,#f7f9fc 0,#f3f6fa 240px);}
 <div class="page" id="page-scenario">
   <div class="wrap-sm">
     <button class="btn btn-outline" style="margin-bottom:16px;" onclick="goTo('page-student-dash')"><i class="ti ti-arrow-left"></i> Back</button>
+    <div class="practice-reminder"><i class="ti ti-calendar-stats" style="font-size:20px;color:var(--gold);flex-shrink:0;"></i><div><strong style="color:var(--navy);">Recommended practice plan:</strong> Practice on 2 different days each week for a combined 30–45 minutes. Complete at least 3 attempts per scenario, review the report between attempts, and aim for two consecutive scores of 85+.</div></div>
     <div style="font-size:20px;font-weight:700;color:var(--navy);margin-bottom:4px;">Choose your scenario</div>
     <div style="font-size:14px;color:var(--text-2);margin-bottom:20px;">Pick your customer and scenario to begin.</div>
     <div class="section-label">Choose your customer</div>
@@ -1130,6 +1140,11 @@ body{background:linear-gradient(180deg,#f7f9fc 0,#f3f6fa 240px);}
       <div class="mq-card"><div class="mq-val" id="rc-turns">6</div><div class="mq-lbl">Turns</div></div>
       <div class="mq-card"><div class="mq-val" id="rc-duration">4:32</div><div class="mq-lbl">Duration</div></div>
     </div>
+    <div class="card" id="report-benchmarks" style="margin-bottom:14px;">
+      <div class="section-label">Your results against the coaching targets</div>
+      <div class="benchmark-grid" id="report-benchmark-grid"></div>
+      <div style="font-size:10px;color:var(--text-3);margin-top:9px;">These ranges guide coaching and do not automatically determine a grade. Natural communication style, accent, disability, and assignment context should be considered.</div>
+    </div>
     <div class="card">
       <div class="section-label">Skill breakdown</div>
       <div class="skill-detail-row"><span class="sdr-name">Rapport</span><div class="sdr-bar"><div class="sdr-fill" style="width:80%;background:var(--green)"></div></div><span class="sdr-val">8</span><span class="sdr-badge" style="background:var(--green-bg);color:var(--green);">Strong</span></div>
@@ -1179,6 +1194,32 @@ body{background:linear-gradient(180deg,#f7f9fc 0,#f3f6fa 240px);}
       </div>
       <button class="btn btn-outline" onclick="goTo('page-student-dash')"><i class="ti ti-arrow-left"></i> Dashboard</button>
     </div>
+
+    <div class="card" style="margin-bottom:14px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:12px;"><div><div class="section-label">Your practice plan</div><div style="font-size:13px;color:var(--text-2);">Weekly activity resets Monday; scenario mastery is cumulative.</div></div><span class="target-status target-needs" id="weekly-overall-status">Needs practice</span></div>
+      <div class="practice-plan-grid">
+        <div class="practice-plan-item"><div class="sc-label">Practice days</div><div class="practice-plan-value" id="target-days">0 of 2</div><span class="target-status target-needs" id="target-days-status">Needs practice</span></div>
+        <div class="practice-plan-item"><div class="sc-label">Weekly minutes</div><div class="practice-plan-value" id="target-minutes">0 of 30</div><span class="target-status target-needs" id="target-minutes-status">Needs practice</span></div>
+        <div class="practice-plan-item"><div class="sc-label">Scenarios practiced 3+ times</div><div class="practice-plan-value" id="target-attempts">0 of 7</div><span class="target-status target-needs" id="target-attempts-status">Needs practice</span></div>
+        <div class="practice-plan-item"><div class="sc-label">Mastery streak</div><div class="practice-plan-value" id="target-mastery">0 of 2</div><span class="target-status target-needs" id="target-mastery-status">Needs practice</span></div>
+      </div>
+    </div>
+
+    <details class="card" style="margin-bottom:14px;" open>
+      <summary style="cursor:pointer;font-weight:700;color:var(--navy);">What should I be aiming for?</summary>
+      <div style="overflow-x:auto;margin-top:10px;"><table class="target-table"><thead><tr><th>Measure</th><th>Target</th><th>Why it matters</th></tr></thead><tbody>
+        <tr><td>Speaking pace</td><td><strong>125–165 WPM</strong></td><td>A coaching range within normal conversational speech.</td></tr>
+        <tr><td>Filler words</td><td><strong>0–2 per minute</strong></td><td>Occasional fillers are natural; frequent fillers can reduce clarity.</td></tr>
+        <tr><td>Response length</td><td><strong>30–90 seconds</strong></td><td>Long enough for evidence, concise enough to remain focused.</td></tr>
+        <tr><td>Sales talk time</td><td><strong>45–60%</strong></td><td>Supports balanced discovery and active listening.</td></tr>
+        <tr><td>Meaningful questions</td><td><strong>4+</strong></td><td>Encourages discovery and relevant follow-up.</td></tr>
+        <tr><td>Overall score</td><td><strong>85+</strong></td><td>Sales Lab mastery standard.</td></tr>
+        <tr><td>Practice frequency</td><td><strong>2 days/week</strong></td><td>Spacing practice supports retention better than cramming.</td></tr>
+        <tr><td>Weekly practice</td><td><strong>30–45 minutes</strong></td><td>Two short practice-and-review blocks support deliberate practice.</td></tr>
+        <tr><td>Scenario mastery</td><td><strong>3+ attempts and 85+ twice consecutively</strong></td><td>Baseline, feedback-informed retry, and repeatable mastery.</td></tr>
+      </tbody></table></div>
+      <div style="font-size:10px;color:var(--text-3);line-height:1.5;margin-top:10px;">Research basis: <a href="https://pubmed.ncbi.nlm.nih.gov/16719566/" target="_blank" rel="noopener">spacing-effect meta-analysis (Cepeda et al., 2006)</a>, <a href="https://pubmed.ncbi.nlm.nih.gov/18778378/" target="_blank" rel="noopener">deliberate-practice research (Ericsson, 2008)</a>, and <a href="https://pubmed.ncbi.nlm.nih.gov/21512370/" target="_blank" rel="noopener">simulation-with-deliberate-practice evidence (McGaghie et al., 2011)</a>. Exact weekly minutes, attempt counts, and score cutoffs are research-informed course standards—not universal research cutoffs.</div>
+    </details>
 
     <!-- OVERALL STATS -->
     <div class="stats-grid stats-grid-4" style="margin-bottom:18px;">
@@ -3348,10 +3389,17 @@ async function renderStudentTable(filter=''){
       return sSessions.length===0||(s.last_practice_date&&(new Date()-new Date(s.last_practice_date))>7*24*60*60*1000);
     }).length;
 
+    const weekStart=mondayStart(),today=new Date();today.setHours(0,0,0,0);
+    const weeklySessions=(sessions||[]).filter(s=>new Date(s.created_at)>=weekStart);
+    const todaySessions=(sessions||[]).filter(s=>new Date(s.created_at)>=today);
+    const weeklySeconds=weeklySessions.reduce((sum,s)=>sum+(Number(s.duration_seconds)||0),0);
+
     // Update stat cards
     const statCards=document.querySelectorAll('#page-teacher-dash .sc-val');
     if(statCards[0]) statCards[0].textContent=students.length;
+    if(statCards[1]) statCards[1].textContent=todaySessions.length;
     if(statCards[2]) statCards[2].textContent=avgScore||' - ';
+    if(statCards[3]) statCards[3].textContent=weeklySeconds>=3600?Math.floor(weeklySeconds/3600)+'h '+Math.floor((weeklySeconds%3600)/60)+'m':Math.floor(weeklySeconds/60)+'m';
     if(statCards[4]) statCards[4].textContent=needHelp;
 
     const COLORS=[
@@ -4144,6 +4192,54 @@ function performanceScenarioMeta(key){
   };
   return {name:SCENARIOS[key]?.name||fallback[key]?.[0]||key,icon:fallback[key]?.[1]||'🎯'};
 }
+function targetState(el,value,target){
+  if(!el)return;
+  const level=value>=target?'on':value>0?'developing':'needs';
+  el.className='target-status target-'+level;
+  el.textContent=level==='on'?'On track':level==='developing'?'Developing':'Needs practice';
+}
+function mondayStart(date=new Date()){
+  const d=new Date(date),day=(d.getDay()+6)%7;
+  d.setHours(0,0,0,0);d.setDate(d.getDate()-day);return d;
+}
+function consecutiveMastery(attempts){
+  const ordered=[...attempts].sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
+  let streak=0,best=0;
+  ordered.forEach(s=>{streak=Number(s.overall_score)>=85?streak+1:0;best=Math.max(best,streak);});
+  return best;
+}
+function renderPracticePlan(sessions){
+  const weekStart=mondayStart();
+  const weekly=sessions.filter(s=>new Date(s.created_at)>=weekStart);
+  const days=new Set(weekly.map(s=>new Date(s.created_at).toLocaleDateString('en-CA'))).size;
+  const minutes=Math.floor(weekly.reduce((sum,s)=>sum+(Number(s.duration_seconds)||0),0)/60);
+  const keys=['cold','elevator','product','close','objection','demo','interview'];
+  const prepared=keys.filter(key=>sessions.filter(s=>s.scenario===key).length>=3).length;
+  const mastery=Math.max(0,...keys.map(key=>consecutiveMastery(sessions.filter(s=>s.scenario===key))));
+  document.getElementById('target-days').textContent=days+' of 2';
+  document.getElementById('target-minutes').textContent=minutes+' of 30';
+  document.getElementById('target-attempts').textContent=prepared+' of 7';
+  document.getElementById('target-mastery').textContent=Math.min(mastery,2)+' of 2';
+  targetState(document.getElementById('target-days-status'),days,2);
+  targetState(document.getElementById('target-minutes-status'),minutes,30);
+  targetState(document.getElementById('target-attempts-status'),prepared,7);
+  targetState(document.getElementById('target-mastery-status'),mastery,2);
+  const achieved=[days>=2,minutes>=30,prepared>=7,mastery>=2].filter(Boolean).length;
+  targetState(document.getElementById('weekly-overall-status'),achieved,4);
+}
+function renderReportBenchmarks(session){
+  const host=document.getElementById('report-benchmark-grid');if(!host)return;
+  const duration=Math.max(Number(session.duration_seconds)||0,1),turns=Math.max(Number(session.turn_count)||0,1);
+  const fillersPerMinute=(Number(session.filler_words)||0)/(duration/60);
+  const responseSeconds=Math.round(duration/turns);
+  const items=[
+    ['Overall score',(session.overall_score??'—')+'/100','85+',Number(session.overall_score)>=85],
+    ['Speaking pace',(session.wpm||'—')+' WPM','125–165',Number(session.wpm)>=125&&Number(session.wpm)<=165],
+    ['Filler rate',fillersPerMinute.toFixed(1)+'/min','0–2/min',fillersPerMinute<=2],
+    [session.scenario==='interview'?'Average answer':'Average response',responseSeconds+' sec','30–90 sec',responseSeconds>=30&&responseSeconds<=90]
+  ];
+  host.innerHTML=items.map(item=>'<div class="benchmark-item"><strong>'+escapeHtml(item[0])+'</strong><span>'+escapeHtml(item[1])+' · Target '+escapeHtml(item[2])+'</span><div style="margin-top:6px;"><span class="target-status '+(item[3]?'target-on':'target-developing')+'">'+(item[3]?'Target range':'Developing')+'</span></div></div>').join('');
+}
 function renderPerformanceScenarios(sessions){
   METRICS_SESSIONS=sessions||[];
   const host=document.getElementById('performance-scenario-grid');
@@ -4157,7 +4253,8 @@ function renderPerformanceScenarios(sessions){
     const total=attempts.reduce((sum,s)=>sum+(Number(s.duration_seconds)||0),0);
     const improvement=scores.length>1?scores[scores.length-1]-scores[0]:null;
     const color=best==null?'var(--text-3)':best>=80?'var(--green)':best>=70?'var(--gold)':best>=60?'var(--amber)':'var(--red)';
-    const status=!attempts.length?'Not started':improvement==null?'First attempt saved':improvement>0?'+'+improvement+' points since first attempt':improvement<0?Math.abs(improvement)+' points below first attempt':'Same as first attempt';
+    const mastery=consecutiveMastery(attempts),mastered=attempts.length>=3&&mastery>=2;
+    const status=!attempts.length?'Not started':mastered?'Mastered · 85+ twice consecutively':attempts.length<3?'Practicing · '+attempts.length+' of 3 attempts':'Developing · continue toward two 85+ scores';
     return '<button class="card" type="button" onclick="openPerformanceScenario(\''+key+'\')" aria-label="Open '+escapeHtml(meta.name)+' attempt history" style="padding:14px;cursor:pointer;text-align:left;width:100%;font-family:inherit;'+(!attempts.length?'opacity:.65;':'')+'">'+
       '<div style="display:flex;justify-content:space-between;align-items:flex-start;"><div style="font-size:22px;">'+meta.icon+'</div><i class="ti ti-chevron-right" style="color:var(--text-3);"></i></div>'+
       '<div style="font-size:13px;font-weight:700;color:var(--text);margin-top:5px;">'+escapeHtml(meta.name)+'</div>'+
@@ -4205,6 +4302,8 @@ async function loadStudentMetrics(){
       .eq('student_id',APP.user.id)
       .order('created_at',{ascending:true});
 
+    renderPracticePlan(sessions||[]);
+    renderPerformanceScenarios(sessions||[]);
     if(!sessions||!sessions.length) return;
 
     const scores=sessions.filter(s=>s.overall_score).map(s=>s.overall_score);
@@ -4231,8 +4330,6 @@ async function loadStudentMetrics(){
     if(fw) fw.textContent=umTotal;
 
     // Render clickable scenario summaries and their saved-attempt drill-down
-    renderPerformanceScenarios(sessions);
-
     // Update skill bars
     const skills=['rapport','clarity','confidence','close_score','discovery','value_prop','objections','listening'];
     const skillIds=['rapport','clarity','confidence','close','discovery','valueprop','objections','listening'];
@@ -4332,6 +4429,7 @@ async function loadStudentReport(sessionId=null){
     if(!sessions||!sessions.length) return;
     const s=sessions[0];
     renderInterviewReport(s);
+    renderReportBenchmarks(s);
 
     // Update report card with real data
     const rcScore=document.getElementById('rc-score');
