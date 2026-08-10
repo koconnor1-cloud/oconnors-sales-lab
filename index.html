@@ -580,6 +580,17 @@ body{background:linear-gradient(180deg,#f7f9fc 0,#f3f6fa 240px);}
   .sdr-badge{display:none;}
 }
 
+/* Classroom readiness */
+.password-wrap{position:relative}.password-wrap input{padding-right:44px}.password-toggle{position:absolute;right:4px;top:4px;width:36px;height:34px;border:0;background:transparent;border-radius:7px;color:var(--text-2);cursor:pointer}
+.auth-link{display:block;margin:10px auto 0;border:0;background:transparent;color:var(--navy-3);font:600 12px 'DM Sans',sans-serif;cursor:pointer;text-decoration:underline}
+.empty-state{text-align:center;color:var(--text-2);padding:28px}.assignment-hero{display:flex;align-items:center;justify-content:space-between;gap:18px}
+.btn:focus-visible,.btn-sm:focus-visible,.nav-tab:focus-visible,.role-btn:focus-visible,.form-tab:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,.password-toggle:focus-visible{outline:3px solid var(--gold-2);outline-offset:2px}
+#page-lms{display:none!important}
+@media(max-width:640px){
+  .nav{height:62px;padding:0 10px}.nav-logo-text{display:none}.nav-tabs{position:fixed;left:0;right:0;bottom:0;height:64px;background:var(--navy);border-top:2px solid var(--gold);display:grid!important;grid-template-columns:repeat(6,1fr);z-index:150;padding:4px}
+  .nav-tab{padding:5px 2px;font-size:9px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}.nav-tab i{font-size:18px}.page{padding-bottom:72px}
+  .assignment-hero{align-items:flex-start;flex-direction:column}.assignment-hero .btn{width:100%;justify-content:center}.assign-card{align-items:flex-start;flex-wrap:wrap}.assign-right{width:100%;align-items:stretch}.assign-right .btn{justify-content:center}
+}
 </style>
 </head>
 <body>
@@ -605,6 +616,8 @@ body{background:linear-gradient(180deg,#f7f9fc 0,#f3f6fa 240px);}
 </nav>
 
 
+<!-- ============================================================
+     PAGE 1: AUTH
      ============================================================ -->
 <div class="page active" id="page-auth">
   <div class="auth-layout">
@@ -646,8 +659,9 @@ body{background:linear-gradient(180deg,#f7f9fc 0,#f3f6fa 240px);}
       <!-- LOGIN -->
       <div id="form-login">
         <div class="form-field"><label>Email</label><input type="email" id="login-email" placeholder="you@school.edu"></div>
-        <div class="form-field"><label>Password</label><input type="password" id="login-password" placeholder="••••••••"></div>
+        <div class="form-field"><label for="login-password">Password</label><div class="password-wrap"><input type="password" id="login-password" placeholder="••••••••"><button type="button" class="password-toggle" aria-label="Show password" onclick="togglePassword('login-password',this)"><i class="ti ti-eye"></i></button></div></div>
         <button class="btn btn-navy btn-full" onclick="handleLogin()">Log in to Sales Lab</button>
+        <button class="auth-link" type="button" onclick="requestPasswordReset()">Forgot password?</button>
         <div class="divider-or">or</div>
         <button class="btn btn-outline btn-full" onclick="setFormTab('signup')">Create a new account</button>
       </div>
@@ -660,16 +674,13 @@ body{background:linear-gradient(180deg,#f7f9fc 0,#f3f6fa 240px);}
           </div>
           <div class="form-field"><label>Email</label><input type="email" id="s-email" placeholder="you@school.edu"></div>
           <div class="form-field"><label>Password</label><input type="password" id="s-pass" placeholder="At least 8 characters"></div>
-          <div class="form-field"><label>Class code</label><input type="text" id="s-code" class="code-input" placeholder="SALES24" maxlength="10"><div class="field-hint">Get your class code from Dr. O'Connor.</div></div>
+          <div class="form-field"><label>Class code</label><input type="text" id="s-code" class="code-input" placeholder="SALESFALL26" maxlength="12"><div class="field-hint">Get your class code from Dr. O'Connor.</div></div>
         </div>
         <div id="signup-teacher-fields" style="display:none;">
-          <div class="form-row">
-            <div class="form-field"><label>First name</label><input type="text" id="t-first" placeholder="Dr."></div>
-            <div class="form-field"><label>Last name</label><input type="text" id="t-last" placeholder="O'Connor"></div>
+          <div class="card" style="border-color:var(--gold-border);background:var(--gold-light);margin-bottom:14px;">
+            <div style="font-weight:700;margin-bottom:5px;">Instructor accounts require approval</div>
+            <div style="font-size:13px;color:var(--text-2);line-height:1.55;">For student privacy, instructor access cannot be self-created. Contact Dr. O'Connor to have an approved account activated.</div>
           </div>
-          <div class="form-field"><label>School email</label><input type="email" id="t-email" placeholder="teacher@school.edu"></div>
-          <div class="form-field"><label>Password</label><input type="password" id="t-pass" placeholder="At least 8 characters"></div>
-          <div class="form-field"><label>School / institution</label><input type="text" id="t-school" placeholder="Pensacola High School"></div>
         </div>
         <button class="btn btn-navy btn-full" onclick="handleSignup()">Create account</button>
         <div class="divider-or">or</div>
@@ -695,38 +706,16 @@ body{background:linear-gradient(180deg,#f7f9fc 0,#f3f6fa 240px);}
       <div class="streak-pill"><span class="streak-num">3</span>&nbsp;day streak <i class="ti ti-flame" style="font-size:14px;color:#F59E0B;margin-left:2px;"></i></div>
     </div>
     <div class="stats-grid stats-grid-4">
-      <div class="stat-card gold-card"><div class="sc-label">Best score</div><div class="sc-val">78</div><div class="sc-sub">out of 100</div></div>
-      <div class="stat-card"><div class="sc-label">Attempts</div><div class="sc-val">7</div><div class="sc-sub">total sessions</div></div>
-      <div class="stat-card"><div class="sc-label">Class rank</div><div class="sc-val">#4</div><div class="sc-sub">hidden until reveal</div></div>
-      <div class="stat-card"><div class="sc-label">Badges</div><div class="sc-val">3</div><div class="sc-sub">earned</div></div>
+      <div class="stat-card gold-card"><div class="sc-label">Best score</div><div class="sc-val" id="dash-best">—</div><div class="sc-sub">out of 100</div></div>
+      <div class="stat-card"><div class="sc-label">Attempts</div><div class="sc-val" id="dash-attempts">0</div><div class="sc-sub">saved sessions</div></div>
+      <div class="stat-card"><div class="sc-label">Practice time</div><div class="sc-val" id="dash-time">0m</div><div class="sc-sub">total</div></div>
+      <div class="stat-card"><div class="sc-label">Badges</div><div class="sc-val" id="dash-badges">0</div><div class="sc-sub">earned</div></div>
     </div>
     <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;">
       <div class="section-label" style="margin-bottom:0;">Your assignments</div>
       <button class="btn-sm" onclick="goTo('page-student-assignments')">View all <i class="ti ti-arrow-right"></i></button>
     </div>
-    <div class="assign-card">
-      <div class="assign-icon">📞</div>
-      <div class="assign-body">
-        <div class="assign-title">Cold call — Social media marketing</div>
-        <div class="assign-sub">Marcus Rivera · Beginner · Service</div>
-        <div class="assign-tags"><span class="tag tag-gold">Watch example first</span><span class="tag tag-gray">Due Friday</span><span class="tag tag-gray">0 attempts</span></div>
-      </div>
-      <div class="assign-right">
-        <button class="btn btn-outline" onclick="goTo('page-watch-example')"><i class="ti ti-player-play"></i> Watch example</button>
-      </div>
-    </div>
-    <div class="assign-card">
-      <div class="assign-icon">⚡</div>
-      <div class="assign-body">
-        <div class="assign-title">Elevator pitch — Office tech bundle</div>
-        <div class="assign-sub">Sandra Chen · Intermediate · Product</div>
-        <div class="assign-tags"><span class="tag tag-green">Example watched</span><span class="tag tag-gray">No deadline</span><span class="tag tag-navy">3 attempts</span></div>
-        <div style="margin-top:8px;"><div style="font-size:11px;color:var(--text-3);margin-bottom:4px;font-weight:600;">Best: 71/100</div><div class="prog-bar"><div class="prog-fill" style="width:71%"></div></div></div>
-      </div>
-      <div class="assign-right">
-        <button class="btn btn-navy" onclick="goTo('page-scenario')"><i class="ti ti-refresh"></i> Practice again</button>
-      </div>
-    </div>
+    <div id="dash-assignments"><div class="card empty-state">Loading your coursework…</div></div>
     <div class="dashboard-actions">
       <button class="btn btn-navy" onclick="goTo('page-scenario')"><i class="ti ti-player-play"></i> Start free practice</button>
       <button class="btn btn-outline" onclick="goTo('page-metrics')"><i class="ti ti-chart-bar"></i> Review performance</button>
@@ -741,60 +730,19 @@ body{background:linear-gradient(180deg,#f7f9fc 0,#f3f6fa 240px);}
      ============================================================ -->
 <div class="page" id="page-student-assignments">
   <div class="wrap">
-    <div class="hero-bar" style="display:flex;align-items:center;justify-content:space-between;gap:18px;">
-      <div>
-        <div class="hero-title">Your <span>assignments</span></div>
-        <div class="hero-sub">See what is due, continue your work, and revisit completed practice.</div>
-      </div>
+    <div class="hero-bar assignment-hero">
+      <div><div class="hero-title">Your <span>assignments</span></div><div class="hero-sub">Required coursework from your instructor, separate from Competition Mode.</div></div>
       <button class="btn btn-gold" onclick="goTo('page-scenario')"><i class="ti ti-player-play"></i> Free practice</button>
     </div>
-
     <div class="stats-grid stats-grid-4">
-      <div class="stat-card gold-card"><div class="sc-label">Due soon</div><div class="sc-val">1</div><div class="sc-sub">due Friday</div></div>
-      <div class="stat-card"><div class="sc-label">In progress</div><div class="sc-val">1</div><div class="sc-sub">3 attempts</div></div>
-      <div class="stat-card"><div class="sc-label">Completed</div><div class="sc-val">1</div><div class="sc-sub">this course</div></div>
-      <div class="stat-card"><div class="sc-label">Best score</div><div class="sc-val">78</div><div class="sc-sub">across assignments</div></div>
+      <div class="stat-card gold-card"><div class="sc-label">Due soon</div><div class="sc-val" id="assign-due">0</div><div class="sc-sub">next 7 days</div></div>
+      <div class="stat-card"><div class="sc-label">In progress</div><div class="sc-val" id="assign-progress">0</div><div class="sc-sub">started</div></div>
+      <div class="stat-card"><div class="sc-label">Completed</div><div class="sc-val" id="assign-completed">0</div><div class="sc-sub">submitted</div></div>
+      <div class="stat-card"><div class="sc-label">Best score</div><div class="sc-val" id="assign-best">—</div><div class="sc-sub">saved sessions</div></div>
     </div>
-
-    <div class="section-label">Due soon</div>
-    <div class="assign-card">
-      <div class="assign-icon">📞</div>
-      <div class="assign-body">
-        <div class="assign-title">Cold call — Social media marketing</div>
-        <div class="assign-sub">Marcus Rivera · Beginner · Service</div>
-        <div class="assign-tags"><span class="tag tag-red">Due Friday</span><span class="tag tag-gold">Watch example first</span><span class="tag tag-gray">0 of 3 attempts</span></div>
-      </div>
-      <div class="assign-right">
-        <button class="btn btn-navy" onclick="goTo('page-watch-example')"><i class="ti ti-player-play"></i> Begin assignment</button>
-      </div>
-    </div>
-
-    <div class="section-label" style="margin-top:22px;">In progress</div>
-    <div class="assign-card">
-      <div class="assign-icon">⚡</div>
-      <div class="assign-body">
-        <div class="assign-title">Elevator pitch — Office tech bundle</div>
-        <div class="assign-sub">Sandra Chen · Intermediate · Product</div>
-        <div class="assign-tags"><span class="tag tag-green">Example watched</span><span class="tag tag-gray">No deadline</span><span class="tag tag-navy">3 attempts</span></div>
-        <div style="margin-top:8px;"><div style="font-size:11px;color:var(--text-3);margin-bottom:4px;font-weight:600;">Best: 71/100</div><div class="prog-bar"><div class="prog-fill" style="width:71%"></div></div></div>
-      </div>
-      <div class="assign-right">
-        <button class="btn btn-navy" onclick="goTo('page-scenario')"><i class="ti ti-refresh"></i> Continue</button>
-      </div>
-    </div>
-
-    <div class="section-label" style="margin-top:22px;">Completed</div>
-    <div class="assign-card">
-      <div class="assign-icon"><i class="ti ti-check" style="color:var(--green);"></i></div>
-      <div class="assign-body">
-        <div class="assign-title">Product pitch — Business consulting</div>
-        <div class="assign-sub">Completed · 2 attempts · Best score 78/100</div>
-        <div class="assign-tags"><span class="tag tag-green">Completed</span><span class="tag tag-navy">Best: 78</span></div>
-      </div>
-      <div class="assign-right">
-        <button class="btn btn-outline" onclick="goTo('page-report')"><i class="ti ti-file-description"></i> View report</button>
-      </div>
-    </div>
+    <div id="assignment-list"><div class="card empty-state">Loading assignments…</div></div>
+    <div class="section-label" style="margin-top:24px;">Session history</div>
+    <div id="session-history"><div class="card empty-state">Loading saved reports…</div></div>
   </div>
 </div>
 
@@ -804,12 +752,12 @@ body{background:linear-gradient(180deg,#f7f9fc 0,#f3f6fa 240px);}
 <div class="page" id="page-watch-example">
   <div class="wrap-sm">
     <button class="btn btn-outline" style="margin-bottom:16px;" onclick="goTo('page-student-dash')"><i class="ti ti-arrow-left"></i> Back</button>
-    <div style="font-size:20px;font-weight:700;color:var(--navy);margin-bottom:4px;">Watch the example first</div>
+    <div style="font-size:20px;font-weight:700;color:var(--navy);margin-bottom:4px;">Instructor resources</div>
     <div style="font-size:14px;color:var(--text-2);margin-bottom:20px;">Cold call · Social media marketing · Marcus Rivera</div>
     <div class="example-player">
       <div style="font-size:28px;opacity:0.3;">▶</div>
       <div style="font-size:13px;color:rgba(255,255,255,0.4);">Example pitch — Dr. O'Connor</div>
-      <div style="font-size:11px;color:rgba(255,255,255,0.25);">Video loads after deploying to GitHub Pages</div>
+      <div style="font-size:11px;color:rgba(255,255,255,0.25);">Example videos are not currently assigned</div>
     </div>
     <div class="watch-progress card">
       <div class="section-label">What to watch for</div>
@@ -817,7 +765,7 @@ body{background:linear-gradient(180deg,#f7f9fc 0,#f3f6fa 240px);}
       <div class="watch-step"><div class="step-check active">2</div><div><div style="font-size:13px;font-weight:600;">Handling the "we tried ads before" objection</div><div style="font-size:12px;color:var(--text-2);">Watch the pivot technique at 1:45</div></div></div>
       <div class="watch-step"><div class="step-check">3</div><div><div style="font-size:13px;font-weight:600;">The closing move</div><div style="font-size:12px;color:var(--text-2);">A clear ask for the next step at the end</div></div></div>
     </div>
-    <button class="btn btn-navy btn-full" onclick="goTo('page-scenario')"><i class="ti ti-check"></i> I've watched — start practicing</button>
+    <button class="btn btn-navy btn-full" onclick="goTo('page-scenario')"><i class="ti ti-check"></i> Continue to practice</button>
   </div>
 </div>
 
@@ -1923,19 +1871,19 @@ body{background:linear-gradient(180deg,#f7f9fc 0,#f3f6fa 240px);}
       <div style="font-size:13px;color:rgba(255,255,255,0.6);line-height:1.6;">Sync grades automatically to your gradebook, import your class roster, and push assignments directly from Sales Lab into your LMS.</div>
     </div>
     <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:20px;">
-      <div class="card" style="text-align:center;padding:24px 16px;cursor:pointer;" onclick="toast('Canvas integration — requires Supabase backend. Coming soon!')">
+      <div class="card" style="text-align:center;padding:24px 16px;cursor:pointer;" onclick="toast('Canvas integration — is not enabled for this course.')">
         <div style="font-size:36px;margin-bottom:8px;">🎨</div>
         <div style="font-size:14px;font-weight:700;color:var(--navy);margin-bottom:4px;">Canvas</div>
         <div style="font-size:12px;color:var(--text-2);margin-bottom:12px;">Most common in universities</div>
         <span class="tag tag-amber">Requires backend</span>
       </div>
-      <div class="card" style="text-align:center;padding:24px 16px;cursor:pointer;" onclick="toast('Google Classroom — requires Supabase backend. Coming soon!')">
+      <div class="card" style="text-align:center;padding:24px 16px;cursor:pointer;" onclick="toast('Google Classroom — is not enabled for this course.')">
         <div style="font-size:36px;margin-bottom:8px;">🎓</div>
         <div style="font-size:14px;font-weight:700;color:var(--navy);margin-bottom:4px;">Google Classroom</div>
         <div style="font-size:12px;color:var(--text-2);margin-bottom:12px;">K-12 and higher ed</div>
         <span class="tag tag-amber">Requires backend</span>
       </div>
-      <div class="card" style="text-align:center;padding:24px 16px;cursor:pointer;" onclick="toast('Blackboard integration — requires Supabase backend. Coming soon!')">
+      <div class="card" style="text-align:center;padding:24px 16px;cursor:pointer;" onclick="toast('Blackboard integration — is not enabled for this course.')">
         <div style="font-size:36px;margin-bottom:8px;">⬛</div>
         <div style="font-size:14px;font-weight:700;color:var(--navy);margin-bottom:4px;">Blackboard</div>
         <div style="font-size:12px;color:var(--text-2);margin-bottom:12px;">Enterprise LMS</div>
@@ -2123,14 +2071,14 @@ body{background:linear-gradient(180deg,#f7f9fc 0,#f3f6fa 240px);}
     <div class="hero-bar" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
       <div>
         <div class="hero-title">Good morning, <span>Dr. O'Connor</span> 👋</div>
-        <div class="hero-sub">O'Connor's Sales Lab · SALES24 · Period 1</div>
+        <div class="hero-sub">O'Connor's Sales Lab · <span id="teacher-class-label">SALESFALL26</span></div>
         <div style="display:flex;gap:8px;margin-top:10px;">
-          <div class="code-chip"><i class="ti ti-key"></i> SALES24</div>
+          <div class="code-chip"><i class="ti ti-key"></i> <span id="teacher-class-code">SALESFALL26</span></div>
         </div>
       </div>
       <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end;">
         <button class="btn btn-gold" onclick="goTo('page-assign')"><i class="ti ti-plus"></i> Assign scenario</button>
-        <button class="btn btn-outline-white" onclick="toast('Grades exported to CSV!')"><i class="ti ti-download"></i> Export grades</button>
+        <button class="btn btn-outline-white" onclick="exportGrades()"><i class="ti ti-download"></i> Export grades</button>
         <button class="btn btn-outline-white" onclick="toast('Leaderboard revealed to all students!')"><i class="ti ti-eye"></i> Reveal leaderboard</button>
       </div>
     </div>
@@ -2158,7 +2106,7 @@ body{background:linear-gradient(180deg,#f7f9fc 0,#f3f6fa 240px);}
         </select>
       </div>
       <div style="display:flex;gap:6px;">
-        <button class="btn btn-outline btn-sm" onclick="toast('CSV exported!')"><i class="ti ti-download"></i> Export</button>
+        <button class="btn btn-outline btn-sm" onclick="exportGrades()"><i class="ti ti-download"></i> Export</button>
         <button class="btn btn-navy btn-sm" onclick="goTo('page-analytics')"><i class="ti ti-chart-bar"></i> Analytics</button>
       </div>
     </div>
@@ -2466,6 +2414,7 @@ let APP={
   cameraOn:false,
   voiceEnabled:localStorage.getItem('osl_voice')!=='false',
   sessionTranscript:[],
+  pendingRecordings:[],
   currentAudio:null,
   isSpeaking:false,
 };
@@ -2502,16 +2451,7 @@ const PRODUCTS={
   webseo:'Website & SEO',office:'Office tech bundle',pos:'POS system',
 };
 
-const STUDENT_DATA=[
-  {init:'SP',bg:'#FCE7F3',fg:'#9D174D',name:'Sam Park',sessions:9,score:91,trend:'+18',trendDir:'up',time:'3h 12m',weakness:'Strong overall',flag:'ok'},
-  {init:'AK',bg:'#D1FAE5',fg:'#065F46',name:'Alex Kim',sessions:5,score:84,trend:'+6',trendDir:'up',time:'2h 48m',weakness:'Strong overall',flag:'ok'},
-  {init:'PL',bg:'#EDE9FE',fg:'#5B21B6',name:'Priya L.',sessions:6,score:79,trend:'+8',trendDir:'up',time:'2h 05m',weakness:'Confidence',flag:'ok'},
-  {init:'JS',bg:'#DBEAFE',fg:'#1D4ED8',name:'Jamie Santos',sessions:7,score:74,trend:'+12',trendDir:'up',time:'1h 47m',weakness:'Closing',flag:'ok'},
-  {init:'TB',bg:'#FEF3C7',fg:'#92400E',name:'Taylor Brown',sessions:4,score:66,trend:'-4',trendDir:'down',time:'1h 22m',weakness:'Filler words',flag:'warn'},
-  {init:'ML',bg:'#FEE2E2',fg:'#991B1B',name:'Morgan Lee',sessions:1,score:52,trend:' - ',trendDir:'flat',time:'0h 28m',weakness:'Rapport',flag:'alert'},
-  {init:'RC',bg:'#ECFDF5',fg:'#065F46',name:'Riley Chen',sessions:0,score:null,trend:' - ',trendDir:'flat',time:'0h 00m',weakness:'No attempts',flag:'alert'},
-  {init:'CD',bg:'#FFF7ED',fg:'#C2410C',name:'Chris Davis',sessions:0,score:null,trend:' - ',trendDir:'flat',time:'0h 00m',weakness:'No attempts',flag:'alert'},
-];
+const STUDENT_DATA=[];
 
 /* ---- NAVIGATION ---- */
 function goTo(pageId){
@@ -2520,7 +2460,9 @@ function goTo(pageId){
   window.scrollTo(0,0);
   updateNav(pageId);
   if(pageId==='page-metrics') setTimeout(loadStudentMetrics,200);
-  if(pageId==='page-teacher-dash') setTimeout(()=>renderStudentTable(),200);
+  if(pageId==='page-student-dash') setTimeout(loadStudentDashboard,100);
+  if(pageId==='page-student-assignments') setTimeout(loadAssignmentsAndHistory,100);
+  if(pageId==='page-teacher-dash') setTimeout(loadTeacherDashboard,100);
 }
 
 function updateNav(pageId){
@@ -2602,13 +2544,14 @@ async function handleLogin(){
 }
 async function handleSignup(){
   const isT=APP.authRole==='teacher';
+  if(isT){showAuthAlert('Instructor accounts require approval from Dr. O\'Connor.');return;}
   const first=document.getElementById(isT?'t-first':'s-first').value.trim();
   const last=document.getElementById(isT?'t-last':'s-last').value.trim();
   const email=document.getElementById(isT?'t-email':'s-email').value.trim().toLowerCase();
   const pass=document.getElementById(isT?'t-pass':'s-pass').value;
   if(!first||!last||!email||!pass){showAuthAlert('Please fill in all fields.');return;}
   if(pass.length<8){showAuthAlert('Password must be at least 8 characters.');return;}
-  let classCode='SALES24';
+  let classCode='SALESFALL26';
   if(!isT){
     classCode=document.getElementById('s-code').value.trim().toUpperCase();
     if(!classCode){showAuthAlert('Please enter your class code.');return;}
@@ -2619,7 +2562,7 @@ async function handleSignup(){
     if(!SB){showAuthAlert('Connection error. Please try again.');return;}
     const {data,error}=await SB.auth.signUp({
       email,password:pass,
-      options:{data:{full_name:first+' '+last,role:APP.authRole,class_code:classCode}}
+      options:{data:{full_name:first+' '+last,class_code:classCode}}
     });
     if(error){showAuthAlert(error.message);return;}
     showAuthAlert('Account created! Check your email to confirm, then log in.');
@@ -2775,6 +2718,7 @@ function startSession(){
   document.getElementById('mood-pct').textContent=ch.mood+'%';
   APP.history=[];APP.turnCount=0;
   APP.sessionTranscript=[];
+  APP.pendingRecordings=[];
   APP.skillScores={};
   APP.lastCoachFeedback='';
   APP.fillers={um:0,like:0,youknow:0,so:0,basically:0};
@@ -2953,15 +2897,18 @@ async function endSession(event){
         duration_seconds:duration,
         transcript:APP.sessionTranscript||[],
         ai_feedback:APP.lastCoachFeedback||null,
+        assignment_id:APP.activeAssignment||null,
       }).select('id').single();
       if(sessionError)throw sessionError;
       if(!savedSession)throw new Error('The session was not returned after saving.');
+      const recordingFailures=await uploadSessionRecordings(savedSession.id);
       // Update total practice time
       const {error:profileError}=await SB.from('profiles').update({
         total_practice_time:(APP.profile.total_practice_time||0)+duration,
         last_practice_date:new Date().toISOString().split('T')[0],
       }).eq('id',APP.user.id);
       if(profileError)throw profileError;
+      if(recordingFailures)toast(recordingFailures+' audio response'+(recordingFailures===1?' was':'s were')+' not saved. The grade and transcript were saved.');
     }catch(e){
       console.error('Session save error:',e);
       toast('Session could not be saved: '+(e.message||'Unknown error')+'. Please try again.');
@@ -3079,6 +3026,7 @@ async function handleRecordingStop(){
     if(t){
       document.getElementById('chat-input').value=t;
       APP.recordedVoice=true;
+      APP.pendingRecordings.push({blob,mimeType:blob.type||'application/octet-stream',timestamp:Math.floor((Date.now()-(APP.sessionStart||Date.now()))/1000)});
       setVoiceStatus('','Transcribed  -  review and send');
     } else {setVoiceStatus('','Could not transcribe  -  please type your message.');}
   }catch(e){
@@ -3088,6 +3036,25 @@ async function handleRecordingStop(){
   mb.classList.remove('transcribing');
   document.getElementById('mic-icon').className='ti ti-microphone';
   document.getElementById('send-btn').disabled=false;
+}
+
+function recordingExtension(mimeType){
+  if((mimeType||'').includes('mp4'))return 'm4a';
+  if((mimeType||'').includes('ogg'))return 'ogg';
+  return 'webm';
+}
+async function uploadSessionRecordings(sessionId){
+  let failures=0;
+  for(let i=0;i<APP.pendingRecordings.length;i++){
+    const item=APP.pendingRecordings[i];
+    const path=`${APP.user.id}/${sessionId}/${String(i+1).padStart(3,'0')}.${recordingExtension(item.mimeType)}`;
+    const {error:uploadError}=await SB.storage.from('session-recordings').upload(path,item.blob,{contentType:item.mimeType,upsert:false});
+    if(uploadError){console.error('Recording upload error:',uploadError);failures++;continue;}
+    const {error:rowError}=await SB.from('session_recordings').insert({session_id:sessionId,student_id:APP.user.id,storage_path:path,response_index:i+1,recorded_at_seconds:item.timestamp,mime_type:item.mimeType});
+    if(rowError){console.error('Recording metadata error:',rowError);failures++;}
+  }
+  APP.pendingRecordings=[];
+  return failures;
 }
 function setVoiceStatus(cls,text){
   const vs=document.getElementById('voice-status');
@@ -3201,7 +3168,7 @@ async function renderStudentTable(filter=''){
       .from('profiles')
       .select('*')
       .eq('role','student')
-      .eq('class_code', APP.profile?.class_code||'SALES24')
+      .eq('class_code', APP.profile?.class_code||'SALESFALL26')
       .ilike('full_name', filter?`%${filter}%`:'%');
 
     if(error) throw error;
@@ -3218,7 +3185,7 @@ async function renderStudentTable(filter=''){
     if(!students.length){
       const empty=document.createElement('div');
       empty.style.cssText='padding:24px;text-align:center;color:var(--text-3);font-size:13px;';
-      empty.textContent='No students enrolled yet. Share class code SALES24 with your students.';
+      empty.textContent='No students enrolled yet. Share class code '+(APP.profile?.class_code||'SALESFALL26')+' with your students.';
       table.appendChild(empty);
       return;
     }
@@ -3392,6 +3359,8 @@ async function viewSessionPlayback(sessionId){
   const {data:session}=await SB.from('sessions').select('*').eq('id',sessionId).single();
   if(!session) return;
 
+  const {data:recordings}=await SB.from('session_recordings').select('*').eq('session_id',sessionId).order('response_index');
+
   // Populate playback page
   const transcript=document.querySelector('#page-playback .transcript-scroll');
   if(transcript&&session.transcript){
@@ -3418,6 +3387,20 @@ async function viewSessionPlayback(sessionId){
       <span class="tag tag-gold">Score: ${session.overall_score||' - '}/100</span>
       <span class="tag tag-gray">${date}</span>
       <span class="tag tag-navy">${session.character_id} · ${session.difficulty}</span>`;
+  }
+
+  const player=document.querySelector('#page-playback .video-player-box');
+  if(player){
+    if(recordings?.length){
+      const sources=[];
+      for(const recording of recordings){
+        const {data}=await SB.storage.from('session-recordings').createSignedUrl(recording.storage_path,3600);
+        if(data?.signedUrl)sources.push({url:data.signedUrl,index:recording.response_index});
+      }
+      player.innerHTML=sources.length?'<div style="width:100%;padding:18px;"><div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:10px;">Student audio responses</div>'+sources.map(s=>'<div style="display:flex;align-items:center;gap:10px;margin:8px 0;color:rgba(255,255,255,.7);font-size:12px;"><span>Response '+s.index+'</span><audio controls preload="metadata" src="'+s.url+'" style="flex:1;height:34px"></audio></div>').join('')+'</div>':'<div style="color:rgba(255,255,255,.5);font-size:13px;">Recording is unavailable.</div>';
+    }else{
+      player.innerHTML='<div style="color:rgba(255,255,255,.5);font-size:13px;">No audio was recorded for this session.</div>';
+    }
   }
 
   goTo('page-playback');
@@ -3879,6 +3862,106 @@ async function handleModalRecordingStop(){
   document.getElementById('modal-mic-icon').className='ti ti-microphone';
 }
 
+
+function escapeHtml(value){
+  return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+}
+function togglePassword(id,button){
+  const input=document.getElementById(id);const showing=input.type==='text';input.type=showing?'password':'text';
+  button.setAttribute('aria-label',showing?'Show password':'Hide password');
+  button.innerHTML='<i class="ti '+(showing?'ti-eye':'ti-eye-off')+'"></i>';
+}
+async function requestPasswordReset(){
+  const email=document.getElementById('login-email').value.trim().toLowerCase();
+  if(!email){showAuthAlert('Enter your email first, then select Forgot password.');return;}
+  const {error}=await SB.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});
+  showAuthAlert(error?'Password reset failed: '+error.message:'Check your email for a secure password-reset link.');
+}
+function assignmentIcon(scenario){return ({cold:'📞',elevator:'⚡',product:'📦',demo:'💻',objection:'🛡️',close:'🤝'})[scenario]||'📝';}
+function formatDue(value){
+  if(!value)return 'No deadline';
+  const d=new Date(value+'T12:00:00');return 'Due '+d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+}
+function startAssignment(id,scenario,character,product){
+  APP.activeAssignment=id;APP.selectedScenario=scenario||'cold';APP.selectedChar=character||'marcus';
+  const productKey=Object.keys(PRODUCTS).find(k=>PRODUCTS[k]===product);if(productKey){const sel=document.getElementById('product-select');if(sel)sel.value=productKey;}
+  goTo('page-scenario');
+}
+async function loadStudentDashboard(){
+  if(!APP.user)return;
+  const {data:sessions,error}=await SB.from('sessions').select('overall_score,duration_seconds').eq('student_id',APP.user.id);
+  if(!error){
+    const scores=(sessions||[]).map(s=>s.overall_score).filter(Number.isFinite);
+    document.getElementById('dash-best').textContent=scores.length?Math.max(...scores):'—';
+    document.getElementById('dash-attempts').textContent=(sessions||[]).length;
+    const secs=(sessions||[]).reduce((n,s)=>n+(s.duration_seconds||0),0);document.getElementById('dash-time').textContent=secs>=3600?Math.floor(secs/3600)+'h '+Math.floor(secs%3600/60)+'m':Math.floor(secs/60)+'m';
+  }
+  document.getElementById('dash-badges').textContent=Array.isArray(APP.profile?.badges)?APP.profile.badges.length:0;
+  const {data:assignments}=await SB.from('assignments').select('*').eq('active',true).order('due_date',{ascending:true}).limit(2);
+  renderAssignmentCards(assignments||[],document.getElementById('dash-assignments'),true);
+}
+async function loadAssignmentsAndHistory(){
+  if(!APP.user)return;
+  const [ar,sr]=await Promise.all([
+    SB.from('assignments').select('*').eq('active',true).order('due_date',{ascending:true}),
+    SB.from('sessions').select('*').eq('student_id',APP.user.id).order('created_at',{ascending:false})
+  ]);
+  if(ar.error){document.getElementById('assignment-list').innerHTML='<div class="card empty-state">Assignments could not be loaded. Please try again.</div>';return;}
+  const assignments=ar.data||[],sessions=sr.data||[];
+  renderAssignmentCards(assignments,document.getElementById('assignment-list'),false,sessions);
+  const now=new Date(),week=new Date(Date.now()+7*86400000);
+  const attempted=new Set(sessions.map(s=>s.scenario+'|'+s.product));
+  const completed=assignments.filter(a=>attempted.has(a.scenario+'|'+a.product)).length;
+  document.getElementById('assign-due').textContent=assignments.filter(a=>a.due_date&&new Date(a.due_date+'T23:59:59')>=now&&new Date(a.due_date+'T23:59:59')<=week).length;
+  document.getElementById('assign-progress').textContent=Math.max(0,assignments.filter(a=>attempted.has(a.scenario+'|'+a.product)).length-completed);
+  document.getElementById('assign-completed').textContent=completed;
+  const scores=sessions.map(s=>s.overall_score).filter(Number.isFinite);document.getElementById('assign-best').textContent=scores.length?Math.max(...scores):'—';
+  renderSessionHistory(sessions);
+}
+function renderAssignmentCards(assignments,container,compact=false,sessions=[]){
+  if(!container)return;if(!assignments.length){container.innerHTML='<div class="card empty-state"><strong>No assignments yet.</strong><br>Your instructor has not published coursework for this class.</div>';return;}
+  container.innerHTML=assignments.map(a=>{
+    const attempts=sessions.filter(s=>s.scenario===a.scenario&&s.product===a.product);
+    const best=attempts.map(s=>s.overall_score).filter(Number.isFinite);
+    return '<div class="assign-card"><div class="assign-icon">'+assignmentIcon(a.scenario)+'</div><div class="assign-body"><div class="assign-title">'+escapeHtml(a.title||((SCENARIOS[a.scenario]?.name||a.scenario)+' — '+a.product))+'</div><div class="assign-sub">'+escapeHtml(CHARS[a.character_id]?.name||a.character_id||'Assigned buyer')+' · '+escapeHtml(a.difficulty||'Beginner')+'</div><div class="assign-tags"><span class="tag '+(a.due_date?'tag-gray':'tag-navy')+'">'+formatDue(a.due_date)+'</span><span class="tag tag-gray">'+attempts.length+' attempt'+(attempts.length===1?'':'s')+'</span>'+(best.length?'<span class="tag tag-green">Best '+Math.max(...best)+'</span>':'')+'</div>'+(a.instructions&&!compact?'<div class="assign-sub" style="margin-top:8px;">'+escapeHtml(a.instructions)+'</div>':'')+'</div><div class="assign-right"><button class="btn btn-navy" onclick="startAssignment(\''+a.id+'\',\''+escapeHtml(a.scenario)+'\',\''+escapeHtml(a.character_id||'marcus')+'\',\''+escapeHtml(a.product||'')+'\')"><i class="ti ti-player-play"></i> '+(attempts.length?'Practice again':'Begin')+'</button></div></div>';
+  }).join('');
+}
+function renderSessionHistory(sessions){
+  const host=document.getElementById('session-history');if(!host)return;
+  if(!sessions.length){host.innerHTML='<div class="card empty-state">Completed sessions will appear here with a saved report.</div>';return;}
+  host.innerHTML=sessions.map(s=>'<div class="assign-card"><div class="assign-icon">'+assignmentIcon(s.scenario)+'</div><div class="assign-body"><div class="assign-title">'+escapeHtml(SCENARIOS[s.scenario]?.name||s.scenario)+'</div><div class="assign-sub">'+new Date(s.created_at).toLocaleString()+' · '+formatDuration(s.duration_seconds||0)+'</div></div><div class="assign-right"><span class="tag tag-gold">'+(s.overall_score??'—')+'/100</span><button class="btn btn-outline" onclick="openSavedReport(\''+s.id+'\')">View report</button></div></div>').join('');
+}
+async function openSavedReport(id){await loadStudentReport(id);goTo('page-report');}
+async function loadTeacherDashboard(){
+  if(!APP.user||APP.role!=='teacher')return;
+  const code=APP.profile?.class_code||'SALESFALL26';
+  const label=document.getElementById('teacher-class-label');if(label)label.textContent=code;
+  const chip=document.getElementById('teacher-class-code');if(chip)chip.textContent=code;
+  STUDENT_DATA.length=0;await renderStudentTable();
+  const banner=document.querySelector('#page-teacher-dash .alert-banner');if(banner)banner.innerHTML='<i class="ti ti-shield-check" style="font-size:18px;color:var(--green)"></i><div><div style="font-size:13px;font-weight:700;">Live classroom data</div><div style="font-size:12px;color:var(--text-2);">Student records will appear here only when authorized for your class.</div></div>';
+}
+
+async function exportGrades(){
+  if(!APP.user||APP.role!=='teacher')return;
+  const code=APP.profile?.class_code||'SALESFALL26';
+  const {data:students,error:studentError}=await SB.from('profiles').select('id,full_name,email').eq('role','student').eq('class_code',code).order('full_name');
+  if(studentError){toast('Grade export failed: '+studentError.message);return;}
+  const ids=(students||[]).map(s=>s.id);
+  const {data:sessions,error:sessionError}=ids.length?await SB.from('sessions').select('student_id,assignment_id,scenario,overall_score,created_at').in('student_id',ids):{data:[],error:null};
+  if(sessionError){toast('Grade export failed: '+sessionError.message);return;}
+  const rows=[['Student','Email','Class','Sessions','Best score','Average score','Latest score','Latest practice']];
+  (students||[]).forEach(student=>{
+    const attempts=(sessions||[]).filter(s=>s.student_id===student.id).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+    const scores=attempts.map(s=>s.overall_score).filter(Number.isFinite);
+    rows.push([student.full_name||'',student.email||'',code,attempts.length,scores.length?Math.max(...scores):'',scores.length?Math.round(scores.reduce((a,b)=>a+b,0)/scores.length):'',attempts[0]?.overall_score??'',attempts[0]?.created_at||'']);
+  });
+  const csv=rows.map(row=>row.map(value=>'"'+String(value).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  const a=document.createElement('a');a.href=url;a.download=`sales-lab-grades-${code}.csv`;a.click();URL.revokeObjectURL(url);
+}
+window.addEventListener('beforeunload',event=>{
+  if(document.getElementById('page-arena')?.classList.contains('active')&&APP.turnCount>0){event.preventDefault();event.returnValue='';}
+});
 /* ---- REAL DATA LOADERS ---- */
 async function loadStudentMetrics(){
   if(!APP.user) return;
@@ -3941,15 +4024,12 @@ async function loadStudentMetrics(){
   }catch(e){console.log('Metrics load error:',e.message);}
 }
 
-async function loadStudentReport(){
+async function loadStudentReport(sessionId=null){
   if(!APP.user) return;
   try{
-    const {data:sessions}=await SB
-      .from('sessions')
-      .select('*')
-      .eq('student_id',APP.user.id)
-      .order('created_at',{ascending:false})
-      .limit(1);
+    let query=SB.from('sessions').select('*').eq('student_id',APP.user.id);
+    query=sessionId?query.eq('id',sessionId):query.order('created_at',{ascending:false}).limit(1);
+    const {data:sessions}=await query;
 
     if(!sessions||!sessions.length) return;
     const s=sessions[0];
