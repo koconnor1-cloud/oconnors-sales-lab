@@ -374,6 +374,33 @@ body{font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text
 .sub-row{display:flex;justify-content:space-between;font-size:13px;padding:4px 0;}
 .sub-label{color:var(--text-3);}
 .sub-val{font-weight:700;color:var(--navy);font-family:'DM Mono',monospace;}
+.showdown-kicker{font-size:10px;font-weight:700;color:var(--gold-2);letter-spacing:.14em;text-transform:uppercase;margin-bottom:8px;}
+.showdown-title{font-size:30px;font-weight:800;color:var(--white);margin-bottom:5px;}
+.showdown-tagline{font-size:14px;font-weight:700;color:var(--gold-2);letter-spacing:.04em;margin-bottom:8px;}
+.showdown-copy{max-width:680px;margin:0 auto 18px;color:rgba(255,255,255,.67);font-size:13px;line-height:1.65;}
+.showdown-status{display:inline-flex;align-items:center;gap:7px;padding:7px 12px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.8);font-size:12px;font-weight:700;}
+.showdown-dot{width:8px;height:8px;border-radius:50%;background:var(--gold-2);}
+.showdown-grid{display:grid;grid-template-columns:1.25fr .75fr;gap:14px;margin-bottom:14px;}
+.showdown-card{background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius-lg);padding:20px;}
+.showdown-card h2{font-size:16px;color:var(--navy);margin-bottom:6px;}
+.showdown-card-intro{font-size:12px;line-height:1.6;color:var(--text-2);margin-bottom:16px;}
+.round-list{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;}
+.round-card{position:relative;padding:14px 12px;border-radius:var(--radius);background:var(--surface);border:1px solid var(--border);min-height:122px;}
+.round-card:not(:last-child)::after{content:'\2192';position:absolute;right:-10px;top:45%;z-index:2;width:18px;height:18px;border-radius:50%;background:var(--gold);color:var(--navy);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;}
+.round-number{font:700 10px 'DM Mono',monospace;color:var(--gold);letter-spacing:.07em;text-transform:uppercase;margin-bottom:5px;}
+.round-name{font-size:13px;font-weight:800;color:var(--navy);margin-bottom:4px;}
+.round-detail{font-size:11px;line-height:1.45;color:var(--text-2);}
+.showdown-facts{display:grid;gap:10px;}
+.showdown-fact{display:flex;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--border);}
+.showdown-fact:last-child{border:0;padding-bottom:0;}
+.showdown-fact-icon{width:30px;height:30px;border-radius:8px;background:var(--gold-light);color:var(--gold);display:flex;align-items:center;justify-content:center;flex:none;}
+.showdown-fact strong{display:block;font-size:12px;color:var(--navy);margin-bottom:2px;}
+.showdown-fact span{display:block;font-size:11px;line-height:1.45;color:var(--text-2);}
+.showdown-rules{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px;}
+.showdown-rule{padding:13px;border-radius:var(--radius);background:var(--navy-light);font-size:12px;line-height:1.5;color:var(--text-2);}
+.showdown-rule strong{color:var(--navy);display:block;margin-bottom:3px;}
+@media(max-width:800px){.showdown-grid{grid-template-columns:1fr}.round-list{grid-template-columns:repeat(2,1fr)}.round-card:nth-child(2)::after{display:none}.showdown-rules{grid-template-columns:1fr}.showdown-title{font-size:25px}}
+@media(max-width:480px){.round-list{grid-template-columns:1fr}.round-card::after{display:none!important}}
 
 /* ============================================================
    PAGE 9: CERTIFICATE
@@ -2111,50 +2138,47 @@ body{background:linear-gradient(180deg,#f7f9fc 0,#f3f6fa 240px);}
 <div class="page" id="page-competition">
   <div class="wrap">
     <div class="comp-hero">
-      <div style="font-size:10px;font-weight:700;color:var(--gold-2);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:8px;">Active competition</div>
-      <div style="font-size:22px;font-weight:700;color:var(--white);margin-bottom:4px;">Best Cold Call — Period 1</div>
-      <div style="font-size:13px;color:rgba(255,255,255,0.5);margin-bottom:14px;">Practice as many times as you want. Only your highest score is submitted.</div>
-      <div class="countdown-row">
-        <div class="countdown-unit"><div class="countdown-num" id="cd-d">02</div><div class="countdown-lbl">Days</div></div>
-        <div class="countdown-unit"><div class="countdown-num" id="cd-h">14</div><div class="countdown-lbl">Hours</div></div>
-        <div class="countdown-unit"><div class="countdown-num" id="cd-m">38</div><div class="countdown-lbl">Mins</div></div>
-        <div class="countdown-unit"><div class="countdown-num" id="cd-s">00</div><div class="countdown-lbl">Secs</div></div>
-      </div>
-      <div class="comp-stats-row">
-        <div class="comp-stat-chip"><strong>12</strong> students entered</div>
-        <div class="comp-stat-chip"><strong>Scores hidden</strong> until deadline</div>
-        <div class="comp-stat-chip"><strong>Certificate</strong> for 1st place</div>
+      <div class="showdown-kicker">O'Connor's Sales Lab presents</div>
+      <div class="showdown-title">Argo Sales Showdown</div>
+      <div class="showdown-tagline">COMPETE. ADVANCE. CLOSE.</div>
+      <div class="showdown-copy">A multi-round class competition where students apply the skills they build in the Sales Lab, face increasingly challenging sales situations, and advance toward the championship round.</div>
+      <div class="showdown-status"><span class="showdown-dot"></span> Competition details · Schedule coming soon</div>
+    </div>
+
+    <div class="showdown-grid">
+      <section class="showdown-card">
+        <h2>Road to the Championship</h2>
+        <div class="showdown-card-intro">Every round raises the stakes. Advancement is based on the official score earned during that round.</div>
+        <div class="round-list">
+          <div class="round-card"><div class="round-number">Round 1</div><div class="round-name">The Qualifier</div><div class="round-detail">All eligible students compete. The top 16 advance.</div></div>
+          <div class="round-card"><div class="round-number">Round 2</div><div class="round-name">The Challenge</div><div class="round-detail">Sixteen students face a more demanding buyer. The top 8 advance.</div></div>
+          <div class="round-card"><div class="round-number">Round 3</div><div class="round-name">The Semifinal</div><div class="round-detail">Eight semifinalists compete under advanced conditions. The top 4 advance.</div></div>
+          <div class="round-card"><div class="round-number">Final Round</div><div class="round-name">The Championship</div><div class="round-detail">Four finalists compete for the title of Argo Sales Showdown Champion.</div></div>
+        </div>
+      </section>
+      <aside class="showdown-card">
+        <h2>Competition at a glance</h2>
+        <div class="showdown-card-intro">What students should know before the Showdown begins.</div>
+        <div class="showdown-facts">
+          <div class="showdown-fact"><div class="showdown-fact-icon"><i class="ti ti-users"></i></div><div><strong>Open to the class</strong><span>Every eligible student starts in the qualifying round.</span></div></div>
+          <div class="showdown-fact"><div class="showdown-fact-icon"><i class="ti ti-route"></i></div><div><strong>Four progressive rounds</strong><span>Scenarios become more challenging as the field narrows.</span></div></div>
+          <div class="showdown-fact"><div class="showdown-fact-icon"><i class="ti ti-chart-bar"></i></div><div><strong>Consistent scoring</strong><span>Each student is evaluated using the same round-specific criteria.</span></div></div>
+          <div class="showdown-fact"><div class="showdown-fact-icon"><i class="ti ti-trophy"></i></div><div><strong>One champion</strong><span>The highest-scoring finalist wins the Argo Sales Showdown.</span></div></div>
+        </div>
       </div>
     </div>
-    <div class="submission-card">
-      <div class="section-label">Your submission</div>
-      <div class="sub-row"><span class="sub-label">Best score submitted</span><span class="sub-val" style="color:var(--gold)">74</span></div>
-      <div class="sub-row"><span class="sub-label">Total attempts</span><span class="sub-val">4</span></div>
-      <div class="sub-row"><span class="sub-label">Status</span><span class="sub-val" style="color:var(--green)">Entered ✓</span></div>
-      <div style="display:flex;gap:8px;margin-top:12px;">
-        <button class="btn btn-navy" onclick="goTo('page-scenario')"><i class="ti ti-refresh"></i> Improve my score</button>
-        <button class="btn btn-outline" onclick="goTo('page-report')"><i class="ti ti-file"></i> Last report card</button>
+
+    <section class="showdown-card">
+      <h2>How the Showdown works</h2>
+      <div class="showdown-rules">
+        <div class="showdown-rule"><strong><i class="ti ti-lock"></i> Official attempts</strong>Each round uses a designated scenario and an official competition attempt. Practice sessions do not count as entries.</div>
+        <div class="showdown-rule"><strong><i class="ti ti-scale"></i> Fair conditions</strong>Competitors in the same round receive the same scenario, buyer difficulty, time window, and scoring standards.</div>
+        <div class="showdown-rule"><strong><i class="ti ti-eye-off"></i> Protected results</strong>Scores and rankings remain hidden until the instructor releases the official round results.</div>
+        <div class="showdown-rule"><strong><i class="ti ti-target-arrow"></i> Advancement</strong>The highest official scores advance. Ties are resolved using the round's priority skills, then the instructor's review.</div>
+        <div class="showdown-rule"><strong><i class="ti ti-message-circle"></i> Coaching between rounds</strong>Students may review their report and keep practicing before the next official round opens.</div>
+        <div class="showdown-rule"><strong><i class="ti ti-award"></i> Championship recognition</strong>The winner is named Argo Sales Showdown Champion; finalists and round results remain part of the competition record.</div>
       </div>
-    </div>
-    <div class="assign-card" style="border-color:var(--gold-border);background:var(--gold-light);">
-      <div class="assign-icon gold-icon">🏆</div>
-      <div class="assign-body">
-        <div class="assign-title">Best Cold Call — Period 1</div>
-        <div class="assign-sub">Active · Ends Sunday midnight · Certificate prize</div>
-        <div class="assign-tags"><span class="tag tag-gold">Active</span><span class="tag tag-gray">12 entered</span></div>
-      </div>
-      <div class="assign-right"><div style="font-size:12px;color:var(--green);font-weight:700;"><i class="ti ti-check"></i> Entered</div></div>
-    </div>
-    <div class="assign-card">
-      <div class="assign-icon">⚡</div>
-      <div class="assign-body">
-        <div class="assign-title">Elevator Pitch Championship</div>
-        <div class="assign-sub">Starts next Monday · Sandra Chen · Intermediate</div>
-        <div class="assign-tags"><span class="tag tag-gray">Upcoming</span><span class="tag tag-navy">Certificate prize</span></div>
-      </div>
-      <div class="assign-right"><button class="btn btn-outline" onclick="toast('Reminder set!')">Remind me</button></div>
-    </div>
-    <button class="btn btn-outline" onclick="goTo('page-student-dash')"><i class="ti ti-arrow-left"></i> Back to dashboard</button>
+    </section>
   </div>
 </div>
 
@@ -2630,7 +2654,7 @@ function updateNav(pageId){
       {id:'page-scenario',label:'Practice',icon:'ti-player-play'},
       {id:'page-student-assignments',label:'Assignments',icon:'ti-clipboard-check'},
       {id:'page-metrics',label:'Performance',icon:'ti-chart-bar'},
-      {id:'page-competition',label:'Competition',icon:'ti-trophy'},
+      {id:'page-competition',label:'Argo Sales Showdown',icon:'ti-trophy'},
     ];
     tabs.forEach(t=>{
       const btn=document.createElement('button');
@@ -2647,7 +2671,7 @@ function updateNav(pageId){
       {id:'page-teacher-dash',label:'Dashboard',icon:'ti-layout-dashboard'},
       {id:'page-assign',label:'Assignments',icon:'ti-clipboard-check'},
       {id:'page-analytics',label:'Analytics',icon:'ti-chart-dots'},
-      {id:'page-competition',label:'Competition',icon:'ti-trophy'},
+      {id:'page-competition',label:'Argo Sales Showdown',icon:'ti-trophy'},
       {id:'page-rubric',label:'Settings',icon:'ti-settings'},
     ];
     tabs.forEach(t=>{
