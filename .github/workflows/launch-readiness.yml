@@ -14,6 +14,7 @@ on:
       - 'supabase/migrations/**'
       - 'tools/validate-launch-readiness.mjs'
       - 'tools/smoke-launch-readiness.mjs'
+      - 'tools/probe-production-schema.mjs'
 
 jobs:
   validate:
@@ -32,6 +33,22 @@ jobs:
       - name: Confirm no retired case in launch candidate
         run: |
           ! grep -E "Coastal Growth Solutions|Elevate360|HarborPoint Industrial Supply" launch-readiness.html assets/launch-readiness.js assets/launch-evidence.js
+
+  production-probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Read-only Supabase schema and auth probe
+        run: node tools/probe-production-schema.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: production-schema-probe
+          path: production-probe/schema-report.json
+          if-no-files-found: ignore
 
   browser-smoke:
     runs-on: ubuntu-latest
