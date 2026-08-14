@@ -35,7 +35,7 @@ with check (
     where s.id = session_videos.session_id
       and s.student_id = (select auth.uid())
       and s.assignment_id = session_videos.assignment_id
-      and a.class_code = public.current_sales_lab_class()
+      and a.class_code = (select private.current_class_code())
   )
 );
 
@@ -48,7 +48,7 @@ drop policy if exists "Teachers view assigned session videos" on public.session_
 create policy "Teachers view assigned session videos"
 on public.session_videos for select to authenticated
 using (
-  public.current_sales_lab_role() = 'teacher'
+  (select private.current_profile_role()) = 'teacher'
   and exists (
     select 1
     from public.assignments a
@@ -56,7 +56,7 @@ using (
     where s.id = session_videos.session_id
       and a.id = session_videos.assignment_id
       and a.teacher_id = (select auth.uid())
-      and a.class_code = public.current_sales_lab_class()
+      and a.class_code = (select private.current_class_code())
   )
 );
 
@@ -79,6 +79,12 @@ on storage.objects for insert to authenticated
 with check (
   bucket_id = 'assignment-videos'
   and (storage.foldername(name))[1] = (select auth.uid())::text
+  and exists (
+    select 1 from public.sessions s
+    where s.student_id=(select auth.uid())
+      and s.assignment_id is not null
+      and s.id::text=(storage.foldername(name))[2]
+  )
 );
 
 drop policy if exists "Students read own assignment videos" on storage.objects;
@@ -94,13 +100,13 @@ create policy "Teachers read assigned session videos"
 on storage.objects for select to authenticated
 using (
   bucket_id = 'assignment-videos'
-  and public.current_sales_lab_role() = 'teacher'
+  and (select private.current_profile_role()) = 'teacher'
   and exists (
     select 1
     from public.session_videos v
     join public.assignments a on a.id = v.assignment_id
     where v.storage_path = storage.objects.name
       and a.teacher_id = (select auth.uid())
-      and a.class_code = public.current_sales_lab_class()
+      and a.class_code = (select private.current_class_code())
   )
 );
