@@ -46,8 +46,6 @@ saveSessionCompatible=async function(base){
   return q.data;
 };
 
-// Formal assignment attempts are counted only when a saved session is explicitly
-// linked to that assignment. Free practice never consumes a graded attempt.
 renderAssignments=function(assignments,host,sessions=[],compact=false){
   if(!host)return;
   if(!assignments.length){host.innerHTML='<div class="card empty">No published assignments yet.</div>';return}
@@ -61,8 +59,6 @@ renderAssignments=function(assignments,host,sessions=[],compact=false){
   }).join('')
 };
 
-// Revalidate eligibility against production immediately before entering a formal
-// assignment so a stale browser tab cannot bypass publication or attempt limits.
 startAssignment=async function(id,scenario,buyer,product){
   const [{data:a,error:assignmentError},{data:sessions,error:sessionError}]=await Promise.all([
     SB.from('assignments').select('*').eq('id',id).eq('active',true).single(),
@@ -75,4 +71,26 @@ startAssignment=async function(id,scenario,buyer,product){
   APP.activeAssignment=id;APP.activeCompetitionRound=null;APP.selectedScenario=scenario;APP.selectedBuyer=buyer;
   const key=Object.keys(CONTEXTS).find(k=>CONTEXTS[k]===product);if(key)el('context-select').value=key;
   renderScenarioCards();updateBriefPreview();showPage('practice-page');
+};
+
+async function restoreIncompleteAssignmentAttempt(sessionId,path){
+  if(path){
+    try{await SB.storage.from('assignment-videos').remove([path])}catch(e){console.warn('Partial assignment-video cleanup failed',e)}
+  }
+  const {error}=await SB.rpc('discard_incomplete_assignment_session',{p_session_id:sessionId});
+  if(error)throw new Error('Recording upload failed and the attempt could not be automatically restored. Contact your instructor before retrying.');
+  throw new Error('Recording upload failed, but your formal attempt was restored. Check your connection and try again.');
+}
+
+uploadAssignmentVideo=async function(sessionId,v){
+  if(v.blob.size>150*1024*1024){
+    await restoreIncompleteAssignmentAttempt(sessionId,null);
+    return;
+  }
+  const ext=v.mimeType.includes('mp4')?'mp4':'webm';
+  const path=`${APP.user.id}/${sessionId}/assignment-video.${ext}`;
+  const up=await SB.storage.from('assignment-videos').upload(path,v.blob,{contentType:v.mimeType});
+  if(up.error){await restoreIncompleteAssignmentAttempt(sessionId,null);return}
+  const row=await SB.from('session_videos').insert({session_id:sessionId,assignment_id:APP.activeAssignment,student_id:APP.user.id,storage_path:path,mime_type:v.mimeType,size_bytes:v.blob.size,duration_seconds:v.durationSeconds,consented_at:v.consentedAt});
+  if(row.error){await restoreIncompleteAssignmentAttempt(sessionId,path);return}
 };
