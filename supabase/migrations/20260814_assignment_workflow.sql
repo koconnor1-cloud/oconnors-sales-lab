@@ -61,7 +61,7 @@ begin
   set published=p_published
   where a.id=p_assignment_id
     and a.teacher_id=(select auth.uid())
-    and a.class_code=public.current_sales_lab_class()
+    and a.class_code=(select private.current_class_code())
   returning * into v_assignment;
   if v_assignment.id is null then raise exception 'Assignment not found or not authorized'; end if;
   return v_assignment;
@@ -77,7 +77,7 @@ begin
   set active=false,published=false
   where a.id=p_assignment_id
     and a.teacher_id=(select auth.uid())
-    and a.class_code=public.current_sales_lab_class();
+    and a.class_code=(select private.current_class_code());
   if not found then raise exception 'Assignment not found or not authorized'; end if;
 end;
 $function$;
