@@ -34,6 +34,7 @@ async function evaluateCompleteConversation(base){
 const basicSaveSessionCompatible=saveSessionCompatible;
 saveSessionCompatible=async function(base){
   if(!APP.activeAssignment&&!APP.activeCompetitionRound)return basicSaveSessionCompatible(base);
+  if(APP.activeCompetitionRound)base.competition_round_id=APP.activeCompetitionRound.id;
   let evaluation;
   try{toast('Reviewing the complete conversation against the course rubric…');evaluation=await evaluateCompleteConversation(base)}catch(err){console.error('Evidence scoring unavailable',err);evaluation={recommended_score:base.overall_score??0,confidence:0,criteria:[],strengths:[],priority_improvement:'Instructor review required because evidence scoring was unavailable.',flags:['scoring_unavailable']}}
   base.overall_score=evaluation.recommended_score;
