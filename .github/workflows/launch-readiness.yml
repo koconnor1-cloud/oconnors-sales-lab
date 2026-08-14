@@ -1,0 +1,63 @@
+name: Sales Lab Launch Readiness
+
+on:
+  push:
+    branches:
+      - agent/fall26-launch-readiness
+  pull_request:
+    paths:
+      - 'index.html'
+      - 'launch-readiness.html'
+      - 'assets/launch-readiness.js'
+      - 'assets/launch-readiness.css'
+      - 'assets/launch-evidence.js'
+      - 'course-alignment/**'
+      - 'supabase/migrations/**'
+      - 'tools/validate-launch-readiness.mjs'
+      - 'tools/smoke-launch-readiness.mjs'
+      - 'tools/build-launch-ready.mjs'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: JavaScript syntax
+        run: |
+          node --check assets/launch-readiness.js
+          node --check assets/launch-evidence.js
+      - name: Course and interface alignment
+        run: node tools/validate-launch-readiness.mjs
+      - name: Confirm no retired case in launch candidate
+        run: |
+          ! grep -E "Coastal Growth Solutions|Elevate360|HarborPoint Industrial Supply" index.html launch-readiness.html assets/launch-readiness.js assets/launch-evidence.js
+
+  browser-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Playwright
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install --silent playwright@1.54.2
+          npx playwright install --with-deps chromium
+      - name: Smoke test desktop and iPad
+        run: node tools/smoke-launch-readiness.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: launch-ready-build
+          path: launch-ready.html
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: launch-readiness-smoke-screenshots
+          path: smoke-artifacts/*.png
+          if-no-files-found: ignore
