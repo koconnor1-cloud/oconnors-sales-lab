@@ -1,0 +1,30 @@
+name: Sales Lab Launch Readiness
+
+on:
+  push:
+    branches:
+      - agent/fall26-launch-readiness
+  pull_request:
+    paths:
+      - 'launch-readiness.html'
+      - 'assets/launch-readiness.js'
+      - 'assets/launch-readiness.css'
+      - 'course-alignment/**'
+      - 'supabase/migrations/**'
+      - 'tools/validate-launch-readiness.mjs'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: JavaScript syntax
+        run: node --check assets/launch-readiness.js
+      - name: Course and interface alignment
+        run: node tools/validate-launch-readiness.mjs
+      - name: Confirm no retired case in launch candidate
+        run: |
+          ! grep -E "Coastal Growth Solutions|Elevate360|HarborPoint Industrial Supply" launch-readiness.html assets/launch-readiness.js
