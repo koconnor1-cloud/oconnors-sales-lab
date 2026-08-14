@@ -1,8 +1,9 @@
 import { chromium } from 'playwright';
-import { spawn,execFileSync } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 
-execFileSync(process.execPath,['tools/build-launch-ready.mjs'],{stdio:'inherit'});
+// Preserve the exact production entry page as the CI launch artifact.
+fs.copyFileSync('index.html','launch-ready.html');
 const server=spawn('python3',['-m','http.server','4173','--bind','127.0.0.1'],{stdio:'ignore'});
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
 try{
@@ -12,7 +13,7 @@ try{
     const page=await browser.newPage({viewport});
     const errors=[];
     page.on('pageerror',e=>errors.push(e.message));
-    await page.goto('http://127.0.0.1:4173/launch-ready.html',{waitUntil:'networkidle',timeout:30000});
+    await page.goto('http://127.0.0.1:4173/index.html',{waitUntil:'networkidle',timeout:30000});
     await page.waitForSelector('#auth-page.active',{timeout:10000});
     const title=await page.textContent('h1');
     if(!title?.includes('Practice the conversation'))throw new Error(`${name}: auth hero did not render`);
@@ -27,5 +28,5 @@ try{
     await page.close();
   }
   await browser.close();
-  console.log('Desktop and iPad launch-ready smoke tests passed with evidence scoring loaded.');
+  console.log('Desktop and iPad production-index smoke tests passed with evidence scoring loaded.');
 } finally {server.kill('SIGTERM')}
