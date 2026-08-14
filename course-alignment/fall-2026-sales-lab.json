@@ -1,0 +1,110 @@
+{
+  "course": {
+    "code": "MAR4412",
+    "title": "Professional Selling Methods",
+    "term": "Fall 2026",
+    "class_code": "SALESFALL26"
+  },
+  "retired_cases": [
+    "Coastal Growth Solutions",
+    "Elevate360",
+    "HarborPoint Industrial Supply"
+  ],
+  "design_principle": "Use varied realistic practice contexts so students learn transferable selling skills. Reserve richer common cases for integrated calls and competition. The live MCS semester project remains separate from the Sales Lab practice sandbox.",
+  "scenarios": [
+    {
+      "key": "elevator",
+      "name": "Elevator Pitch",
+      "course_role": "Week 1 baseline and Week 2 graded pitch",
+      "graded": true,
+      "practice_recording": false,
+      "graded_recording": true,
+      "framework": ["Hook", "Identity", "Value", "Evidence", "Ask"]
+    },
+    {
+      "key": "cold",
+      "name": "Cold Call",
+      "course_role": "Weeks 4-5 and Showdown Round 1",
+      "graded": true,
+      "practice_recording": false,
+      "graded_recording": true,
+      "framework": ["Permission", "Reason", "Relevance", "Questions", "Resistance", "Next step"]
+    },
+    {
+      "key": "discovery",
+      "name": "Discovery + SPIN",
+      "course_role": "Weeks 6-7 and Showdown Round 2",
+      "graded": true,
+      "practice_recording": false,
+      "graded_recording": true,
+      "framework": ["Agenda", "Situation", "Problem", "Implication", "Need-payoff", "Decision process", "Summary", "Next step"]
+    },
+    {
+      "key": "presentation",
+      "name": "Buyer-Centered Presentation",
+      "course_role": "Weeks 7-8 and Showdown Quarterfinal",
+      "graded": true,
+      "practice_recording": false,
+      "graded_recording": true,
+      "framework": ["Confirm priorities", "Preview recommendation", "Buyer-specific value", "Evidence or demo", "Check understanding", "Next step"]
+    },
+    {
+      "key": "objection",
+      "name": "Objection Handling",
+      "course_role": "Integrated skill and Showdown Semifinal",
+      "graded": false,
+      "practice_recording": false,
+      "graded_recording": true,
+      "framework": ["Acknowledge", "Clarify", "Respond", "Confirm", "Advance"]
+    },
+    {
+      "key": "commitment",
+      "name": "Negotiation + Commitment",
+      "course_role": "Late-semester integrated skill",
+      "graded": false,
+      "practice_recording": false,
+      "graded_recording": true,
+      "framework": ["Summarize value", "Clarify remaining issue", "Trade rather than give", "Ask for appropriate commitment", "Confirm owner and timing"]
+    },
+    {
+      "key": "integrated",
+      "name": "Final Integrated Sales Call",
+      "course_role": "Week 17 formal assignment and Showdown Championship",
+      "graded": true,
+      "practice_recording": false,
+      "graded_recording": true,
+      "framework": ["Open", "Discover", "Confirm", "Create value", "Resolve concerns", "Advance"]
+    },
+    {
+      "key": "interview",
+      "name": "Mock Job Interview",
+      "course_role": "Weeks 12-13 career readiness",
+      "graded": true,
+      "practice_recording": false,
+      "graded_recording": true,
+      "framework": ["STAR", "Specific evidence", "Professional delivery", "Role fit", "Questions for interviewer"]
+    }
+  ],
+  "showdown": [
+    {"stage": "Round 1", "scenario": "cold", "label": "Cold Call / Prospecting"},
+    {"stage": "Round 2", "scenario": "discovery", "label": "Discovery"},
+    {"stage": "Quarterfinal", "scenario": "presentation", "label": "Value Presentation"},
+    {"stage": "Semifinal", "scenario": "objection", "label": "Objection Handling + Value"},
+    {"stage": "Championship", "scenario": "integrated", "label": "Complete Sales Call + Close"}
+  ],
+  "launch_rules": {
+    "free_practice_is_recorded": false,
+    "graded_assignments_require_explicit_recording_consent": true,
+    "ai_scores_are_coaching_until_instructor_approval": true,
+    "prototype_controls_must_be_removed_or_disabled": true,
+    "week_1_required_flow": [
+      "student registration/login",
+      "Sales Lab orientation",
+      "free-practice Elevator Pitch",
+      "microphone and transcription",
+      "AI response",
+      "saved practice report",
+      "instructor visibility of student practice"
+    ]
+  }
+}
