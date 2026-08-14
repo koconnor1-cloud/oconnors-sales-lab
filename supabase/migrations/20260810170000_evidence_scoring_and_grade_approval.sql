@@ -23,7 +23,7 @@ create or replace function public.protect_official_grade_fields()
 returns trigger language plpgsql security definer set search_path=''
 as $function$
 begin
-  if (select public.current_sales_lab_role())='student' then
+  if (select private.current_profile_role())='student' then
     if tg_op='INSERT' then
       new.final_grade:=null; new.instructor_feedback:=null; new.reviewed_by:=null; new.reviewed_at:=null;
       new.grading_status:=case when new.assignment_id is null then 'practice_feedback' else 'awaiting_instructor' end;
