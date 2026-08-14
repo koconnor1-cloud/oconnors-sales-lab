@@ -14,6 +14,7 @@ on:
       - 'supabase/migrations/**'
       - 'tools/validate-launch-readiness.mjs'
       - 'tools/smoke-launch-readiness.mjs'
+      - 'tools/build-launch-ready.mjs'
 
 jobs:
   validate:
@@ -47,6 +48,12 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Smoke test desktop and iPad
         run: node tools/smoke-launch-readiness.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: launch-ready-build
+          path: launch-ready.html
+          if-no-files-found: error
       - uses: actions/upload-artifact@v4
         if: always()
         with:
