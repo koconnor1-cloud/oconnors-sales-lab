@@ -6,6 +6,7 @@ on:
       - agent/fall26-launch-readiness
   pull_request:
     paths:
+      - 'index.html'
       - 'launch-readiness.html'
       - 'assets/launch-readiness.js'
       - 'assets/launch-readiness.css'
@@ -32,7 +33,7 @@ jobs:
         run: node tools/validate-launch-readiness.mjs
       - name: Confirm no retired case in launch candidate
         run: |
-          ! grep -E "Coastal Growth Solutions|Elevate360|HarborPoint Industrial Supply" launch-readiness.html assets/launch-readiness.js assets/launch-evidence.js
+          ! grep -E "Coastal Growth Solutions|Elevate360|HarborPoint Industrial Supply" index.html launch-readiness.html assets/launch-readiness.js assets/launch-evidence.js
 
   browser-smoke:
     runs-on: ubuntu-latest
