@@ -1,10 +1,13 @@
 -- Fall 2026 launch readiness: free practice must not persist recordings.
--- The browser may use microphone audio transiently for transcription during practice,
+-- Microphone audio may be used transiently for transcription during free practice,
 -- but durable recording storage is permitted only for instructor-assigned sessions.
 
--- Replace the earlier broad student recording-metadata policy.
+-- Remove the current broad metadata policy and replace it with assignment-only insert
+-- plus student-owned read/delete access.
+drop policy if exists "Students manage own recordings" on public.session_recordings;
 drop policy if exists "Students manage own recording metadata" on public.session_recordings;
-drop policy if exists "Students upload own session recordings" on storage.objects;
+drop policy if exists "Students save assigned recording metadata" on public.session_recordings;
+drop policy if exists "Students read own recording metadata" on public.session_recordings;
 
 create policy "Students save assigned recording metadata"
 on public.session_recordings for insert to authenticated
@@ -18,11 +21,18 @@ with check (
   )
 );
 
--- Students may still read their own historical recording metadata.
-drop policy if exists "Students read own recording metadata" on public.session_recordings;
 create policy "Students read own recording metadata"
 on public.session_recordings for select to authenticated
 using (student_id=(select auth.uid()));
+
+create policy "Students delete own recording metadata"
+on public.session_recordings for delete to authenticated
+using (student_id=(select auth.uid()));
+
+-- Remove the current broad storage upload policy. Read/delete policies remain valid.
+drop policy if exists "Students upload own session audio" on storage.objects;
+drop policy if exists "Students upload own session recordings" on storage.objects;
+drop policy if exists "Students upload assigned session recordings" on storage.objects;
 
 create policy "Students upload assigned session recordings"
 on storage.objects for insert to authenticated
@@ -37,5 +47,4 @@ with check (
   )
 );
 
--- Existing read policies remain in place: students can read their own objects and
--- instructors can read objects for students in their class.
+-- Existing student read/delete and instructor class-scoped read policies are preserved.
