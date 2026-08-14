@@ -33,8 +33,6 @@ async function evaluateCompleteConversation(base){
 
 const basicSaveSessionCompatible=saveSessionCompatible;
 saveSessionCompatible=async function(base){
-  // Week 1 free practice remains fast and backward-compatible. Formal coursework
-  // and official Showdown attempts receive a complete-conversation evidence pass.
   if(!APP.activeAssignment&&!APP.activeCompetitionRound)return basicSaveSessionCompatible(base);
   let evaluation;
   try{toast('Reviewing the complete conversation against the course rubric…');evaluation=await evaluateCompleteConversation(base)}catch(err){console.error('Evidence scoring unavailable',err);evaluation={recommended_score:base.overall_score??0,confidence:0,criteria:[],strengths:[],priority_improvement:'Instructor review required because evidence scoring was unavailable.',flags:['scoring_unavailable']}}
@@ -42,10 +40,39 @@ saveSessionCompatible=async function(base){
   const enhanced={...base,scoring_version:'evidence-v1',recommended_score:evaluation.recommended_score,scoring_confidence:evaluation.confidence,scoring_evidence:evaluation,review_flags:evaluation.flags,grading_status:APP.activeAssignment?'awaiting_instructor':'competition_evidence'};
   let q=await SB.from('sessions').insert(enhanced).select('id').single();
   if(!q.error)return q.data;
-  // Never silently pretend a formal grade has evidence if the grading schema is absent.
-  if(APP.activeAssignment)throw new Error('The evidence-grading database update must be applied before formal assignments can be submitted.');
-  // Showdown can fall back only while it is not yet live; this keeps the launch candidate testable.
+  if(APP.activeAssignment)throw new Error(q.error.message||'The formal assignment could not be submitted.');
   q=await SB.from('sessions').insert(base).select('id').single();
   if(q.error)throw q.error;
   return q.data;
+};
+
+// Formal assignment attempts are counted only when a saved session is explicitly
+// linked to that assignment. Free practice never consumes a graded attempt.
+renderAssignments=function(assignments,host,sessions=[],compact=false){
+  if(!host)return;
+  if(!assignments.length){host.innerHTML='<div class="card empty">No published assignments yet.</div>';return}
+  host.innerHTML=assignments.map(a=>{
+    const attempts=sessions.filter(s=>s.assignment_id===a.id);
+    const allowed=Math.max(1,Number(a.attempts_allowed)||1);
+    const remaining=Math.max(0,allowed-attempts.length);
+    const best=attempts.map(x=>Number(x.final_grade??x.overall_score)).filter(Number.isFinite);
+    const closed=remaining===0;
+    return`<div class="card assignment"><div class="assignment-icon">${assignmentIcon(a.scenario)}</div><div class="assignment-body"><div class="assignment-title">${escapeHtml(a.title||SCENARIOS[a.scenario]?.name||a.scenario)}</div><div class="assignment-sub">${escapeHtml(BUYERS[a.character_id]?.name||a.character_id||'Assigned buyer')} · ${escapeHtml(a.difficulty||'Beginner')} ·${formatDue(a.due_date)}</div><div class="assignment-tags"><span class="tag tag-gray">${attempts.length}/${allowed} formal attempt${allowed===1?'':'s'} used</span>${best.length?`<span class="tag tag-green">Best ${Math.max(...best)}</span>`:''}${closed?'<span class="tag tag-gray">Submission complete</span>':''}</div>${a.instructions&&!compact?`<div class="assignment-sub">${escapeHtml(a.instructions)}</div>`:''}</div><button class="btn ${closed?'btn-outline':'btn-primary'}" ${closed?'disabled':''} onclick="startAssignment('${a.id}','${a.scenario}','${a.character_id||'marcus'}','${escapeHtml(a.product||'B2B professional service')}')">${closed?'Completed':attempts.length?'Use next attempt':'Begin'}</button></div>`
+  }).join('')
+};
+
+// Revalidate eligibility against production immediately before entering a formal
+// assignment so a stale browser tab cannot bypass publication or attempt limits.
+startAssignment=async function(id,scenario,buyer,product){
+  const [{data:a,error:assignmentError},{data:sessions,error:sessionError}]=await Promise.all([
+    SB.from('assignments').select('*').eq('id',id).eq('active',true).single(),
+    SB.from('sessions').select('id').eq('student_id',APP.user.id).eq('assignment_id',id)
+  ]);
+  if(assignmentError||!a)return toast('This assignment is not currently available. Refresh the page and try again.');
+  if(sessionError)return toast('Could not verify your attempt history. Please try again.');
+  const allowed=Math.max(1,Number(a.attempts_allowed)||1);
+  if((sessions||[]).length>=allowed)return toast('You have already used all formal attempts for this assignment.');
+  APP.activeAssignment=id;APP.activeCompetitionRound=null;APP.selectedScenario=scenario;APP.selectedBuyer=buyer;
+  const key=Object.keys(CONTEXTS).find(k=>CONTEXTS[k]===product);if(key)el('context-select').value=key;
+  renderScenarioCards();updateBriefPreview();showPage('practice-page');
 };
