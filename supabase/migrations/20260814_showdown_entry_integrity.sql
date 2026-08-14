@@ -9,6 +9,13 @@ create index if not exists sessions_competition_round_student_idx
   on public.sessions(competition_round_id,student_id)
   where competition_round_id is not null;
 
+alter table public.sessions
+  drop constraint if exists sessions_grading_status_check;
+alter table public.sessions
+  add constraint sessions_grading_status_check check (
+    grading_status in ('practice_feedback','awaiting_instructor','approved','returned','competition_evidence')
+  );
+
 create or replace function public.protect_official_grade_fields()
 returns trigger
 language plpgsql
