@@ -13,7 +13,7 @@ function semanticButton(){return document.getElementById('handsfree-toggle')}
 function semanticStatus(text){const v=el('voice-status');if(v)v.textContent=text||''}
 function semanticSetButton(){const b=semanticButton();if(!b)return;b.textContent=SEMANTIC_HF.enabled?'Hands-free on':'Hands-free';b.className='btn '+(SEMANTIC_HF.enabled?'btn-gold':'btn-outline')+' btn-sm';b.setAttribute('aria-pressed',SEMANTIC_HF.enabled?'true':'false')}
 function installSemanticButton(){if(semanticButton())return;const actions=document.querySelector('#arena-page .arena-head .footer-actions'),voice=el('voice-toggle');if(!actions||!voice)return;const b=document.createElement('button');b.id='handsfree-toggle';b.type='button';b.className='btn btn-outline btn-sm';b.textContent='Hands-free';b.title='Keep the microphone ready and use semantic turn detection so natural pauses do not end your turn.';b.onclick=toggleHandsFree;actions.insertBefore(b,voice.nextSibling)}
-function semanticEagerness(){return ['elevator','presentation','integrated','interview'].includes(APP.selectedScenario)?'low':'medium'}
+function semanticEagerness(){return ['elevator','cold','presentation','integrated','interview'].includes(APP.selectedScenario)?'low':'medium'}
 function semanticTracksEnabled(enabled){SEMANTIC_HF.stream?.getAudioTracks().forEach(t=>{t.enabled=!!enabled})}
 function semanticStudentTurnCount(){return APP.history.filter(x=>x.role==='user').length}
 function isMinimalConversationOpening(text){const n=String(text||'').toLowerCase().replace(/[^a-z\s']/g,'').replace(/\s+/g,' ').trim();return /^(hi|hello|hey|hi there|hello there|good morning|good afternoon|good evening|thank you|thanks|thank you so much|thanks so much)$/.test(n)}
