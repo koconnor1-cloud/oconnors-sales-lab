@@ -1,0 +1,24 @@
+name: Cachebust Cold VAD
+on:
+  push:
+    branches:
+      - agent/cold-call-low-eagerness
+permissions:
+  contents: write
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/cold-call-low-eagerness
+      - name: Bump hands-free asset version
+        run: python3 -c "from pathlib import Path; p=Path('index.html'); s=p.read_text(); assert 'assets/student-handsfree.js?v=20260816-semantic2' in s; p.write_text(s.replace('assets/student-handsfree.js?v=20260816-semantic2','assets/student-handsfree.js?v=20260816-semantic3',1))"
+      - name: Commit cache bust
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git commit -m "Cachebust patient cold-call hands-free tuning"
+          git push origin HEAD:agent/cold-call-low-eagerness
