@@ -1,0 +1,35 @@
+/* Fall 2026 home-page visual refresh. Scoped to auth page so the production theme remains unchanged elsewhere. */
+#auth-page{background:#eef2f7;overflow:hidden}
+#auth-page .auth-shell{grid-template-columns:minmax(0,1.15fr) minmax(430px,.85fr);min-height:calc(100vh - 66px)}
+#auth-page .auth-brand{position:relative;overflow:hidden;padding:46px clamp(42px,5vw,76px) 40px;background:radial-gradient(circle at 12% 14%,rgba(232,179,16,.13),transparent 27%),radial-gradient(circle at 88% 82%,rgba(74,133,194,.15),transparent 31%),linear-gradient(145deg,#07192f 0%,#0b2342 52%,#12365f 100%);justify-content:flex-start}
+#auth-page .auth-brand:before{content:"";position:absolute;width:420px;height:420px;border:1px solid rgba(255,255,255,.06);border-radius:50%;right:-180px;top:-210px;box-shadow:0 0 0 70px rgba(255,255,255,.018),0 0 0 145px rgba(255,255,255,.012);pointer-events:none}
+#auth-page .auth-brand:after{content:"PRACTICE  →  FEEDBACK  →  REFINE  →  PERFORM";position:absolute;left:clamp(42px,5vw,76px);right:clamp(42px,5vw,76px);bottom:28px;color:rgba(255,255,255,.42);font:800 10px 'DM Mono',monospace;letter-spacing:.15em;text-transform:uppercase;border-top:1px solid rgba(255,255,255,.1);padding-top:14px}
+#auth-page .auth-brand .eyebrow{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold2);font-weight:800;background:rgba(232,179,16,.1);border:1px solid rgba(232,179,16,.3);border-radius:999px;padding:7px 11px;width:max-content;max-width:100%;position:relative;z-index:1}
+#auth-page .auth-brand h1{font-size:clamp(40px,4vw,58px);line-height:1.04;letter-spacing:-.035em;max-width:650px;margin:24px 0 18px;position:relative;z-index:1}
+#auth-page .auth-brand h1 span{color:var(--gold2)}
+#auth-page .auth-brand p{font-size:clamp(14px,1.25vw,17px);line-height:1.75;max-width:620px;color:rgba(255,255,255,.7);margin:0;position:relative;z-index:1}
+#auth-page .auth-brand>div:last-child{margin-top:auto!important;margin-bottom:42px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;max-width:680px;position:relative;z-index:1;padding-top:30px}
+#auth-page .feature{display:flex;align-items:flex-start;gap:9px;margin:0;padding:14px 15px;border:1px solid rgba(255,255,255,.11);background:rgba(255,255,255,.055);border-radius:13px;backdrop-filter:blur(8px);font-size:12px;line-height:1.5;color:rgba(255,255,255,.73);min-height:82px;transition:transform .18s ease,border-color .18s ease,background .18s ease}
+#auth-page .feature:hover{transform:translateY(-2px);border-color:rgba(232,179,16,.38);background:rgba(255,255,255,.075)}
+#auth-page .feature b{width:22px;height:22px;display:grid;place-items:center;border-radius:50%;background:rgba(232,179,16,.16);border:1px solid rgba(232,179,16,.28);color:var(--gold2);flex:0 0 22px}
+#auth-page .feature strong{display:block;color:#fff;margin-bottom:2px;font-size:12px}
+#auth-page .auth-form{position:relative;background:linear-gradient(180deg,#f8fafc 0%,#eef3f8 100%);padding:34px clamp(28px,4vw,54px);align-items:center}
+#auth-page .auth-form:before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(11,31,58,.04),transparent 20%);pointer-events:none}
+#auth-page .auth-panel{width:100%;max-width:520px;margin:auto;background:rgba(255,255,255,.94);border:1px solid rgba(200,211,225,.9);border-radius:22px;padding:28px 30px 24px;box-shadow:0 24px 65px rgba(16,35,63,.12);position:relative;z-index:1}
+#auth-page .auth-panel h2{font-size:27px;letter-spacing:-.02em;margin:0 0 5px}
+#auth-page .auth-panel>.muted{font-size:12px;line-height:1.5}
+#auth-page .role-toggle{margin:16px 0 14px;background:#eef2f6;border-color:#dce4ee}
+#auth-page .role-toggle button{padding:9px}
+#auth-page .auth-panel .card{box-shadow:none;border-color:#e0e7ef;background:#fbfcfe;padding:15px 17px;margin-bottom:10px;border-radius:13px}
+#auth-page .auth-panel .section-label{color:#607086;margin-bottom:10px}
+#auth-page .auth-panel .form-field{margin-bottom:10px}
+#auth-page .auth-panel .form-field label{font-size:9px}
+#auth-page .auth-panel .form-field input{height:42px;background:#fff}
+#auth-page .auth-panel .footer-actions{display:grid;grid-template-columns:1.1fr .9fr;gap:8px}
+#auth-page .auth-panel .footer-actions .btn{width:100%;min-height:40px}
+#auth-page .auth-panel #create-account-btn{width:100%;min-height:42px;margin-top:2px}
+#auth-page .auth-panel .btn-gold{background:linear-gradient(135deg,#d6a514,#bd8900);box-shadow:0 6px 18px rgba(201,152,10,.18)}
+#auth-page .auth-panel .btn-primary{box-shadow:0 6px 18px rgba(11,31,58,.12)}
+@media(max-width:1100px){#auth-page .auth-shell{grid-template-columns:minmax(0,1fr) 450px}#auth-page .auth-brand{padding-left:42px;padding-right:42px}#auth-page .auth-brand h1{font-size:43px}#auth-page .auth-brand>div:last-child{grid-template-columns:1fr}#auth-page .feature{min-height:0}#auth-page .auth-brand:after{left:42px;right:42px}#auth-page .auth-form{padding:28px 24px}#auth-page .auth-panel{padding:24px}}
+@media(max-width:900px){#auth-page{overflow:visible}#auth-page .auth-shell{display:block;min-height:0}#auth-page .auth-brand{min-height:610px;padding:38px 34px 34px}#auth-page .auth-brand h1{font-size:42px;max-width:720px}#auth-page .auth-brand p{max-width:720px}#auth-page .auth-brand>div:last-child{grid-template-columns:repeat(2,minmax(0,1fr));max-width:none;margin-top:32px!important;margin-bottom:44px;padding-top:0}#auth-page .feature{min-height:96px}#auth-page .auth-brand:after{left:34px;right:34px;bottom:18px}#auth-page .auth-form{padding:34px 24px 90px}#auth-page .auth-panel{max-width:650px}}
+@media(max-width:560px){#auth-page .auth-brand{min-height:auto;padding:28px 20px 28px}#auth-page .auth-brand h1{font-size:33px;margin-top:18px}#auth-page .auth-brand p{font-size:14px;line-height:1.6}#auth-page .auth-brand>div:last-child{grid-template-columns:1fr;gap:8px;margin-bottom:38px}#auth-page .feature{min-height:0;padding:11px 12px;font-size:11px}#auth-page .auth-brand:after{left:20px;right:20px;font-size:8px;letter-spacing:.08em}#auth-page .auth-panel{padding:20px 18px;border-radius:16px}#auth-page .auth-panel .footer-actions{grid-template-columns:1fr}#auth-page .auth-form{padding-left:14px;padding-right:14px}}
