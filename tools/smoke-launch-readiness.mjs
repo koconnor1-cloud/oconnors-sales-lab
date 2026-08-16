@@ -40,17 +40,45 @@ try{
     const scripts=await page.locator('script[src]').evaluateAll(nodes=>nodes.map(n=>n.getAttribute('src')));
     if(!scripts.includes('assets/launch-evidence.js'))throw new Error(`${name}: evidence-scoring extension did not load`);
     if(!scripts.includes('assets/launch-controls.js'))throw new Error(`${name}: workflow-control extension did not load`);
-    const controlFns=await page.evaluate(()=>({
+    const controls=await page.evaluate(()=>({
       returnGradeForReview:typeof window.returnGradeForReview,
       setShowdownResultsReleased:typeof window.setShowdownResultsReleased,
-      renderReleasedShowdownStandings:typeof window.renderReleasedShowdownStandings
+      renderReleasedShowdownStandings:typeof window.renderReleasedShowdownStandings,
+      resetPassword:typeof window.resetPassword,
+      showPasswordRecovery:typeof window.showPasswordRecovery,
+      updateRecoveredPassword:typeof window.updateRecoveredPassword,
+      recoveryUrl:window.SALES_LAB_RECOVERY_URL
     }));
-    for(const [fn,type] of Object.entries(controlFns))if(type!=='function')throw new Error(`${name}: ${fn} is not available`);
-    if(errors.length)throw new Error(`${name}: browser errors: ${errors.join(' | ')}`);
+    for(const fn of ['returnGradeForReview','setShowdownResultsReleased','renderReleasedShowdownStandings','resetPassword','showPasswordRecovery','updateRecoveredPassword']){
+      if(controls[fn]!=='function')throw new Error(`${name}: ${fn} is not available`);
+    }
+    if(controls.recoveryUrl!=='https://koconnor1-cloud.github.io/oconnors-sales-lab/')throw new Error(`${name}: password reset is not pinned to the live Sales Lab URL`);
+
     fs.mkdirSync('smoke-artifacts',{recursive:true});
     await page.screenshot({path:`smoke-artifacts/${name}.png`,fullPage:true});
+
+    // Recovery UI must be a real new-password form and must not disturb the left hero.
+    await page.evaluate(()=>window.showPasswordRecovery());
+    await page.waitForSelector('#recovery-password');
+    if(await page.locator('#recovery-password-confirm').count()!==1)throw new Error(`${name}: password confirmation field missing`);
+    if(await page.locator('#recovery-submit').count()!==1)throw new Error(`${name}: password update button missing`);
+    const recoveryHeroBox=await heroCards.boundingBox();
+    if(!recoveryHeroBox||Math.abs(recoveryHeroBox.y-studentBox.y)>2)throw new Error(`${name}: recovery mode moved the locked hero`);
+    if(errors.length)throw new Error(`${name}: browser errors: ${errors.join(' | ')}`);
     await page.close();
   }
+
+  // Expired one-time links should return to the live auth page with useful instructions.
+  const expired=await browser.newPage({viewport:{width:1440,height:1000}});
+  const expiredErrors=[];
+  expired.on('pageerror',e=>expiredErrors.push(e.message));
+  await expired.goto('http://127.0.0.1:4173/index.html?error=access_denied&error_code=otp_expired&error_description=Email+link+is+invalid+or+has+expired',{waitUntil:'networkidle',timeout:30000});
+  await expired.waitForFunction(()=>document.querySelector('#auth-notice')?.textContent.includes('invalid or has expired'),null,{timeout:10000});
+  const expiredText=await expired.textContent('#auth-notice');
+  if(!expiredText?.includes('Forgot password'))throw new Error('expired recovery link does not explain how to request a fresh link');
+  if(expiredErrors.length)throw new Error(`expired-link browser errors: ${expiredErrors.join(' | ')}`);
+  await expired.close();
+
   await browser.close();
-  console.log('Desktop and iPad smoke tests passed; auth hero stays locked across Student/Instructor tabs.');
+  console.log('Desktop/iPad layout, live password-recovery UI, and expired-link handling smoke tests passed.');
 } finally {server.kill('SIGTERM')}
