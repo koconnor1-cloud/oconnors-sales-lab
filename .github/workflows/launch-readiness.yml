@@ -13,11 +13,14 @@ on:
       - 'assets/homepage-polish.css'
       - 'assets/launch-evidence.js'
       - 'assets/launch-controls.js'
+      - 'assets/instructor-session-review.js'
+      - 'assets/teacher-class-analytics.js'
       - 'course-alignment/**'
       - 'supabase/migrations/**'
       - 'tools/validate-launch-readiness.mjs'
       - 'tools/smoke-launch-readiness.mjs'
       - 'tools/build-launch-ready.mjs'
+      - '.github/workflows/launch-readiness.yml'
 
 jobs:
   validate:
@@ -32,11 +35,13 @@ jobs:
           node --check assets/launch-readiness.js
           node --check assets/launch-evidence.js
           node --check assets/launch-controls.js
+          node --check assets/instructor-session-review.js
+          node --check assets/teacher-class-analytics.js
       - name: Course and interface alignment
         run: node tools/validate-launch-readiness.mjs
       - name: Confirm no retired case in launch candidate
         run: |
-          ! grep -E "Coastal Growth Solutions|Elevate360|HarborPoint Industrial Supply" index.html launch-readiness.html assets/launch-readiness.js assets/launch-evidence.js assets/launch-controls.js
+          ! grep -E "Coastal Growth Solutions|Elevate360|HarborPoint Industrial Supply" index.html launch-readiness.html assets/launch-readiness.js assets/launch-evidence.js assets/launch-controls.js assets/instructor-session-review.js assets/teacher-class-analytics.js
 
   browser-smoke:
     runs-on: ubuntu-latest
