@@ -124,6 +124,7 @@ window.openInstructorSession=async function(sessionId){
 
 // Load class-level practice and skill analytics for the instructor dashboard.
 const teacherClassAnalyticsScript=document.createElement('script');
-teacherClassAnalyticsScript.src='assets/teacher-class-analytics.js';
+teacherClassAnalyticsScript.src='assets/teacher-class-analytics.js?v=20260816-analytics2';
 teacherClassAnalyticsScript.async=false;
+teacherClassAnalyticsScript.onload=()=>window.renderTeacherClassAnalytics?.();
 document.body.appendChild(teacherClassAnalyticsScript);

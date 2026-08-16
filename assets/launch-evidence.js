@@ -129,6 +129,6 @@ uploadAssignmentVideo=async function(sessionId,v){
 
 // Load the optional instructor/Showdown completion layer after the core engine is ready.
 const workflowControlsScript=document.createElement('script');
-workflowControlsScript.src='assets/launch-controls.js';
+workflowControlsScript.src='assets/launch-controls.js?v=20260816-analytics2';
 workflowControlsScript.async=false;
 document.body.appendChild(workflowControlsScript);
