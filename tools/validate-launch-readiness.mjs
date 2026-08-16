@@ -43,8 +43,8 @@ if(!js.includes("SB.rpc('create_sales_lab_assignment'"))errors.push('Teacher ass
 if(!js.includes('APP.activeAssignment')||!js.includes('startAssignmentRecording'))errors.push('Assignment recording gate is missing.');
 if(js.includes('pendingRecordings'))errors.push('Launch candidate should not queue free-practice response recordings.');
 if(!js.includes("scenario:'")&&!(js.includes('scenario:APP.selectedScenario')))errors.push('Session save does not include the selected scenario.');
-if(!production.includes('<script src="assets/launch-readiness.js"></script>'))errors.push('Production index does not load core launch logic.');
-if(!production.includes('<script src="assets/launch-evidence.js"></script>'))errors.push('Production index does not load full-conversation evidence scoring.');
+if(!/<script src="assets\/launch-readiness\.js(?:\?[^\"]+)?"><\/script>/.test(production))errors.push('Production index does not load core launch logic.');
+if(!/<script src="assets\/launch-evidence\.js(?:\?[^\"]+)?"><\/script>/.test(production))errors.push('Production index does not load full-conversation evidence scoring.');
 
 const showdown=course.showdown||[];
 if(showdown.length!==5)errors.push('Course alignment source must define five Showdown stages.');
