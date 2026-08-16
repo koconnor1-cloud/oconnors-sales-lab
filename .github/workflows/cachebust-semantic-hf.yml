@@ -1,0 +1,24 @@
+name: Cachebust Semantic Handsfree
+on:
+  push:
+    branches:
+      - agent/semantic-handsfree
+permissions:
+  contents: write
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/semantic-handsfree
+      - name: Bump hands-free asset version
+        run: sed -i 's/student-handsfree.js?v=20260816-conversation4/student-handsfree.js?v=20260816-semantic1/' index.html
+      - name: Commit cachebust
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git commit -m "Cachebust semantic hands-free module"
+          git push origin HEAD:agent/semantic-handsfree
