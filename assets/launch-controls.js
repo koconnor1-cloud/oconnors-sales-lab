@@ -68,3 +68,103 @@ loadShowdown=async function(){
   await coreLoadShowdown();
   await renderReleasedShowdownStandings();
 };
+
+/* Password recovery completion layer.
+   Always routes recovery mail back to the live GitHub Pages application, even when
+   the app is opened from a localhost preview. A recovery session receives a focused
+   new-password form; normal sign-in and course behavior remain unchanged. */
+window.SALES_LAB_RECOVERY_URL='https://koconnor1-cloud.github.io/oconnors-sales-lab/';
+
+window.resetPassword=async function(){
+  const email=el('login-email')?.value.trim().toLowerCase()||'';
+  if(!email)return authNotice('Enter your email first.');
+  authNotice('Sending a secure password-reset link…','info');
+  const {error}=await SB.auth.resetPasswordForEmail(email,{redirectTo:window.SALES_LAB_RECOVERY_URL});
+  authNotice(error?error.message:'Check your email for a fresh password-reset link. Use the newest email only.',error?'error':'success');
+};
+
+function recoveryNotice(message,type='info'){
+  const box=el('recovery-notice');
+  if(!box)return;
+  box.className='notice '+(type==='success'?'notice-green':type==='error'?'notice-red':'notice-info');
+  box.textContent=message;
+  box.classList.remove('hidden');
+}
+
+window.showPasswordRecovery=function(){
+  showPage('auth-page');
+  el('nav-tabs').innerHTML='';
+  el('nav-user').classList.add('hidden');
+  const panel=document.querySelector('#auth-page .auth-panel');
+  if(!panel)return;
+  panel.dataset.mode='password-recovery';
+  panel.innerHTML=`
+    <h2>Choose a new password</h2>
+    <div class="muted" style="font-size:12px;line-height:1.55;margin-bottom:16px">You opened a secure Sales Lab password-recovery link. Enter the new password you want to use for this account.</div>
+    <div id="recovery-notice" class="notice notice-info">Use at least 8 characters. Your old password is not required.</div>
+    <div class="card">
+      <div class="form-field"><label>New password</label><input id="recovery-password" type="password" autocomplete="new-password" minlength="8"></div>
+      <div class="form-field"><label>Confirm new password</label><input id="recovery-password-confirm" type="password" autocomplete="new-password" minlength="8"></div>
+      <button class="btn btn-gold" id="recovery-submit" style="width:100%" onclick="updateRecoveredPassword()">Update password</button>
+    </div>`;
+};
+
+window.updateRecoveredPassword=async function(){
+  const password=el('recovery-password')?.value||'';
+  const confirmPassword=el('recovery-password-confirm')?.value||'';
+  if(password.length<8)return recoveryNotice('Use a password with at least 8 characters.','error');
+  if(password!==confirmPassword)return recoveryNotice('The two password entries do not match.','error');
+  const button=el('recovery-submit');
+  if(button){button.disabled=true;button.textContent='Updating…'}
+  const {error}=await SB.auth.updateUser({password});
+  if(error){
+    if(button){button.disabled=false;button.textContent='Update password'}
+    return recoveryNotice('The password could not be updated: '+error.message,'error');
+  }
+  recoveryNotice('Password updated successfully. Returning you to sign in…','success');
+  await SB.auth.signOut();
+  setTimeout(()=>location.replace(window.SALES_LAB_RECOVERY_URL+'?password-reset=success'),500);
+};
+
+function authFlowParams(){
+  const query=new URLSearchParams(location.search);
+  const hash=new URLSearchParams((location.hash||'').replace(/^#/,''));
+  return {
+    recovery:query.get('type')==='recovery'||hash.get('type')==='recovery',
+    errorCode:query.get('error_code')||hash.get('error_code')||'',
+    errorDescription:query.get('error_description')||hash.get('error_description')||'',
+    resetSuccess:query.get('password-reset')==='success'
+  };
+}
+
+async function initializePasswordRecovery(){
+  const p=authFlowParams();
+  SB.auth.onAuthStateChange((event,session)=>{
+    if(event==='PASSWORD_RECOVERY'&&session)window.showPasswordRecovery();
+  });
+
+  if(p.errorCode){
+    showPage('auth-page');
+    setAuthRole('teacher');
+    const expired=p.errorCode==='otp_expired'||/expired|invalid/i.test(p.errorDescription);
+    authNotice(expired?'That password-reset link is invalid or has expired. Enter your UWF email and click Forgot password to send a fresh link.':('Password recovery could not be completed: '+(p.errorDescription||p.errorCode)),'error');
+    history.replaceState({},'',location.pathname);
+    return;
+  }
+
+  if(p.resetSuccess){
+    showPage('auth-page');
+    setAuthRole('teacher');
+    authNotice('Your password has been updated. Sign in with your new password.','success');
+    history.replaceState({},'',location.pathname);
+    return;
+  }
+
+  if(p.recovery){
+    const {data}=await SB.auth.getSession();
+    if(data?.session)window.showPasswordRecovery();
+  }
+}
+
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(initializePasswordRecovery,0));
+else setTimeout(initializePasswordRecovery,0);
