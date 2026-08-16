@@ -95,3 +95,9 @@ uploadAssignmentVideo=async function(sessionId,v){
   const row=await SB.from('session_videos').insert({session_id:sessionId,assignment_id:APP.activeAssignment,student_id:APP.user.id,storage_path:path,mime_type:v.mimeType,size_bytes:v.blob.size,duration_seconds:v.durationSeconds,consented_at:v.consentedAt});
   if(row.error){await restoreIncompleteAssignmentAttempt(sessionId,path);return}
 };
+
+// Load the optional instructor/Showdown completion layer after the core engine is ready.
+const workflowControlsScript=document.createElement('script');
+workflowControlsScript.src='assets/launch-controls.js';
+workflowControlsScript.async=false;
+document.body.appendChild(workflowControlsScript);

@@ -22,11 +22,18 @@ try{
     if(!privacy?.includes('explicit consent'))throw new Error(`${name}: formal recording consent copy missing`);
     const scripts=await page.locator('script[src]').evaluateAll(nodes=>nodes.map(n=>n.getAttribute('src')));
     if(!scripts.includes('assets/launch-evidence.js'))throw new Error(`${name}: evidence-scoring extension did not load`);
+    if(!scripts.includes('assets/launch-controls.js'))throw new Error(`${name}: workflow-control extension did not load`);
+    const controlFns=await page.evaluate(()=>({
+      returnGradeForReview:typeof window.returnGradeForReview,
+      setShowdownResultsReleased:typeof window.setShowdownResultsReleased,
+      renderReleasedShowdownStandings:typeof window.renderReleasedShowdownStandings
+    }));
+    for(const [fn,type] of Object.entries(controlFns))if(type!=='function')throw new Error(`${name}: ${fn} is not available`);
     if(errors.length)throw new Error(`${name}: browser errors: ${errors.join(' | ')}`);
     fs.mkdirSync('smoke-artifacts',{recursive:true});
     await page.screenshot({path:`smoke-artifacts/${name}.png`,fullPage:true});
     await page.close();
   }
   await browser.close();
-  console.log('Desktop and iPad production-index smoke tests passed with evidence scoring loaded.');
+  console.log('Desktop and iPad production-index smoke tests passed with evidence scoring and workflow controls loaded.');
 } finally {server.kill('SIGTERM')}
