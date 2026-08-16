@@ -2,6 +2,37 @@
    Loaded after launch-readiness.js so it can strengthen saveSessionCompatible()
    without making Week 1 free practice dependent on the advanced grading schema. */
 
+// Password-recovery startup gate. This file loads synchronously after the core engine
+// but before DOMContentLoaded, so it can prevent a valid recovery session from being
+// routed into the ordinary student/instructor dashboard before the recovery UI loads.
+window.SALES_LAB_RECOVERY_BOOT=/(?:[?&#])type=recovery(?:&|$)/i.test(location.search+location.hash);
+if(window.SALES_LAB_RECOVERY_BOOT){
+  const ordinaryLoadProfile=loadProfile;
+  const handoffRecovery=async function(){
+    showPage('auth-page');
+    setAuthRole('teacher');
+    for(let i=0;i<100;i++){
+      if(typeof window.showPasswordRecovery==='function'){
+        window.showPasswordRecovery();
+        return true;
+      }
+      await new Promise(resolve=>setTimeout(resolve,25));
+    }
+    authNotice('Password recovery is active, but the reset form could not be loaded. Refresh this page and use the newest reset email.','error');
+    return false;
+  };
+  loadProfile=async function(){
+    await handoffRecovery();
+  };
+  SB.auth.onAuthStateChange((event,session)=>{
+    if(event==='PASSWORD_RECOVERY'&&session){
+      APP.user=session.user;
+      handoffRecovery();
+    }
+  });
+  window.SALES_LAB_ORDINARY_LOAD_PROFILE=ordinaryLoadProfile;
+}
+
 const EVIDENCE_RUBRICS={
   elevator:[['hook',15,'Open with a relevant and memorable hook'],['identity',15,'Establish a clear professional identity'],['value',25,'Explain audience-relevant value'],['evidence',15,'Support claims with credible evidence'],['clarity',15,'Be concise, natural, and easy to follow'],['ask',15,'End with an appropriate invitation or next step']],
   cold:[['opening',15,'Earn attention and respect the prospect’s time'],['relevance',15,'Give a buyer-relevant reason for the call'],['questions',20,'Ask purposeful questions rather than pitch immediately'],['listening',15,'Respond accurately to what the buyer says'],['resistance',15,'Handle initial resistance professionally'],['communication',10,'Remain concise and buyer-centered'],['next_step',10,'Request a specific appropriate next step']],
