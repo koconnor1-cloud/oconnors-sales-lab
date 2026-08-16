@@ -15,6 +15,7 @@ on:
       - 'assets/launch-controls.js'
       - 'assets/instructor-session-review.js'
       - 'assets/teacher-class-analytics.js'
+      - 'assets/student-handsfree.js'
       - 'course-alignment/**'
       - 'supabase/migrations/**'
       - 'tools/validate-launch-readiness.mjs'
@@ -37,11 +38,12 @@ jobs:
           node --check assets/launch-controls.js
           node --check assets/instructor-session-review.js
           node --check assets/teacher-class-analytics.js
+          node --check assets/student-handsfree.js
       - name: Course and interface alignment
         run: node tools/validate-launch-readiness.mjs
       - name: Confirm no retired case in launch candidate
         run: |
-          ! grep -E "Coastal Growth Solutions|Elevate360|HarborPoint Industrial Supply" index.html launch-readiness.html assets/launch-readiness.js assets/launch-evidence.js assets/launch-controls.js assets/instructor-session-review.js assets/teacher-class-analytics.js
+          ! grep -E "Coastal Growth Solutions|Elevate360|HarborPoint Industrial Supply" index.html launch-readiness.html assets/launch-readiness.js assets/launch-evidence.js assets/launch-controls.js assets/instructor-session-review.js assets/teacher-class-analytics.js assets/student-handsfree.js
 
   browser-smoke:
     runs-on: ubuntu-latest
