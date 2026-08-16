@@ -35,12 +35,10 @@ jobs:
 
           p=Path('tools/smoke-launch-readiness.mjs')
           s=p.read_text()
-          old="    if(!scripts.some(src=>src?.startsWith('assets/teacher-class-analytics.js')))throw new Error(`${name}: teacher-class-analytics extension did not load`);"
-          if old not in s:
-              old="    if(!scripts.includes('assets/teacher-class-analytics.js'))throw new Error(`${name}: teacher-class-analytics extension did not load`);"
+          old="    if(!hasScript('assets/teacher-class-analytics.js'))throw new Error(`${name}: teacher-class-analytics extension did not load`);"
           if old not in s:
               raise SystemExit('teacher analytics script smoke marker not found')
-          new=old+"\n    if(!scripts.some(src=>src?.startsWith('assets/student-handsfree.js')))throw new Error(`${name}: student hands-free extension did not load`);"
+          new=old+"\n    if(!hasScript('assets/student-handsfree.js'))throw new Error(`${name}: student hands-free extension did not load`);"
           if 'student hands-free extension did not load' not in s:
               s=s.replace(old,new,1)
 
@@ -53,13 +51,14 @@ jobs:
 
           oldlist="'renderTeacherClassAnalytics','analyticsSkillData'"
           newlist="'renderTeacherClassAnalytics','analyticsSkillData','toggleHandsFree','enableHandsFree','disableHandsFree'"
-          if oldlist in s:
-              s=s.replace(oldlist,newlist,1)
+          if oldlist not in s:
+              raise SystemExit('controls function list marker not found')
+          s=s.replace(oldlist,newlist,1)
 
           marker="    if(analytics.minutesCold!=='15 min'||analytics.minutesZero!=='0 min')throw new Error(`${name}: practice-minute formatting is incorrect`);"
           if marker not in s:
               raise SystemExit('analytics smoke marker not found')
-          test="""\n    const hf=await page.evaluate(()=>({\n      button:document.querySelector('#handsfree-toggle')?.textContent||'',\n      hasManualMic:typeof window.toggleMic==='function',\n      enabled:window.HANDSFREE?.enabled===true\n    }));\n    if(!hf.button.includes('Hands-free'))throw new Error(`${name}: Hands-free control is missing`);\n    if(!hf.hasManualMic)throw new Error(`${name}: push-to-talk fallback is missing`);\n"""
+          test="""\n    const hf=await page.evaluate(()=>({\n      button:document.querySelector('#handsfree-toggle')?.textContent||'',\n      hasManualMic:typeof window.toggleMic==='function'\n    }));\n    if(!hf.button.includes('Hands-free'))throw new Error(`${name}: Hands-free control is missing`);\n    if(!hf.hasManualMic)throw new Error(`${name}: push-to-talk fallback is missing`);\n"""
           if 'Hands-free control is missing' not in s:
               s=s.replace(marker,marker+test,1)
           p.write_text(s)
