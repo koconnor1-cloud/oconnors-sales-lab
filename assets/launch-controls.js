@@ -168,3 +168,9 @@ async function initializePasswordRecovery(){
 
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(initializePasswordRecovery,0));
 else setTimeout(initializePasswordRecovery,0);
+
+// Load the optional instructor session drill-down after the core instructor controls.
+const instructorSessionReviewScript=document.createElement('script');
+instructorSessionReviewScript.src='assets/instructor-session-review.js';
+instructorSessionReviewScript.async=false;
+document.body.appendChild(instructorSessionReviewScript);
