@@ -11,6 +11,7 @@ on:
       - 'assets/launch-readiness.js'
       - 'assets/launch-readiness.css'
       - 'assets/launch-evidence.js'
+      - 'assets/launch-controls.js'
       - 'course-alignment/**'
       - 'supabase/migrations/**'
       - 'tools/validate-launch-readiness.mjs'
@@ -29,11 +30,12 @@ jobs:
         run: |
           node --check assets/launch-readiness.js
           node --check assets/launch-evidence.js
+          node --check assets/launch-controls.js
       - name: Course and interface alignment
         run: node tools/validate-launch-readiness.mjs
       - name: Confirm no retired case in launch candidate
         run: |
-          ! grep -E "Coastal Growth Solutions|Elevate360|HarborPoint Industrial Supply" index.html launch-readiness.html assets/launch-readiness.js assets/launch-evidence.js
+          ! grep -E "Coastal Growth Solutions|Elevate360|HarborPoint Industrial Supply" index.html launch-readiness.html assets/launch-readiness.js assets/launch-evidence.js assets/launch-controls.js
 
   browser-smoke:
     runs-on: ubuntu-latest
