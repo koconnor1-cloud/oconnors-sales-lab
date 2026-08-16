@@ -44,6 +44,7 @@ try{
     if(!hasScript('assets/launch-controls.js'))throw new Error(`${name}: workflow-control extension did not load`);
     if(!hasScript('assets/instructor-session-review.js'))throw new Error(`${name}: instructor-session-review extension did not load`);
     if(!hasScript('assets/teacher-class-analytics.js'))throw new Error(`${name}: teacher-class-analytics extension did not load`);
+    if(!hasScript('assets/student-handsfree.js'))throw new Error(`${name}: student hands-free extension did not load`);
     const controls=await page.evaluate(()=>({
       returnGradeForReview:typeof window.returnGradeForReview,
       setShowdownResultsReleased:typeof window.setShowdownResultsReleased,
@@ -56,9 +57,12 @@ try{
       backToStudentSessions:typeof window.backToStudentSessions,
       renderTeacherClassAnalytics:typeof window.renderTeacherClassAnalytics,
       analyticsSkillData:typeof window.analyticsSkillData,
+      toggleHandsFree:typeof window.toggleHandsFree,
+      enableHandsFree:typeof window.enableHandsFree,
+      disableHandsFree:typeof window.disableHandsFree,
       recoveryUrl:window.SALES_LAB_RECOVERY_URL
     }));
-    for(const fn of ['returnGradeForReview','setShowdownResultsReleased','renderReleasedShowdownStandings','resetPassword','showPasswordRecovery','updateRecoveredPassword','teacherViewStudent','openInstructorSession','backToStudentSessions','renderTeacherClassAnalytics','analyticsSkillData']){
+    for(const fn of ['returnGradeForReview','setShowdownResultsReleased','renderReleasedShowdownStandings','resetPassword','showPasswordRecovery','updateRecoveredPassword','teacherViewStudent','openInstructorSession','backToStudentSessions','renderTeacherClassAnalytics','analyticsSkillData','toggleHandsFree','enableHandsFree','disableHandsFree']){
       if(controls[fn]!=='function')throw new Error(`${name}: ${fn} is not available`);
     }
     if(controls.recoveryUrl!=='https://koconnor1-cloud.github.io/oconnors-sales-lab/')throw new Error(`${name}: password reset is not pinned to the live Sales Lab URL`);
@@ -79,6 +83,10 @@ try{
     if(Math.abs(rapport.average-7)>0.001||rapport.count!==3)throw new Error(`${name}: rapport aggregation is incorrect`);
     if(Math.abs(clarity.average-7.5)>0.001||clarity.count!==2)throw new Error(`${name}: missing skill values are not handled correctly`);
     if(analytics.minutesCold!=='15 min'||analytics.minutesZero!=='0 min')throw new Error(`${name}: practice-minute formatting is incorrect`);
+    const hf=await page.evaluate(()=>({button:document.querySelector('#handsfree-toggle')?.textContent||'',hasManualMic:typeof window.toggleMic==='function'}));
+    if(!hf.button.includes('Hands-free'))throw new Error(`${name}: Hands-free control is missing`);
+    if(!hf.hasManualMic)throw new Error(`${name}: push-to-talk fallback is missing`);
+
 
     fs.mkdirSync('smoke-artifacts',{recursive:true});
     await page.screenshot({path:`smoke-artifacts/${name}.png`,fullPage:true});
