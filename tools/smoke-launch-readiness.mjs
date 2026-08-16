@@ -20,6 +20,23 @@ try{
     const privacy=await page.textContent('.auth-brand');
     if(!privacy?.includes('Free practice is not durably recorded'))throw new Error(`${name}: free-practice privacy copy missing`);
     if(!privacy?.includes('explicit consent'))throw new Error(`${name}: formal recording consent copy missing`);
+
+    // The left hero must not move when the taller Student signup form is shown.
+    const heroCards=page.locator('#auth-page .auth-brand>div:last-child');
+    const heroIntro=page.locator('#auth-page .auth-brand>p');
+    const studentBox=await heroCards.boundingBox();
+    const introBox=await heroIntro.boundingBox();
+    if(!studentBox||!introBox)throw new Error(`${name}: auth hero geometry unavailable`);
+    const expectedGap=name==='desktop'?55:70;
+    const studentGap=studentBox.y-(introBox.y+introBox.height);
+    if(studentGap>expectedGap)throw new Error(`${name}: student hero has excessive intro gap (${Math.round(studentGap)}px)`);
+    await page.locator('[data-auth-role="teacher"]').click();
+    const teacherBox=await heroCards.boundingBox();
+    if(!teacherBox||Math.abs(teacherBox.y-studentBox.y)>2)throw new Error(`${name}: hero shifts between Student and Instructor tabs`);
+    await page.locator('[data-auth-role="student"]').click();
+    const studentAgain=await heroCards.boundingBox();
+    if(!studentAgain||Math.abs(studentAgain.y-studentBox.y)>2)throw new Error(`${name}: hero does not return to its locked position`);
+
     const scripts=await page.locator('script[src]').evaluateAll(nodes=>nodes.map(n=>n.getAttribute('src')));
     if(!scripts.includes('assets/launch-evidence.js'))throw new Error(`${name}: evidence-scoring extension did not load`);
     if(!scripts.includes('assets/launch-controls.js'))throw new Error(`${name}: workflow-control extension did not load`);
@@ -35,5 +52,5 @@ try{
     await page.close();
   }
   await browser.close();
-  console.log('Desktop and iPad production-index smoke tests passed with evidence scoring and workflow controls loaded.');
+  console.log('Desktop and iPad smoke tests passed; auth hero stays locked across Student/Instructor tabs.');
 } finally {server.kill('SIGTERM')}

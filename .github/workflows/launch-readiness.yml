@@ -10,6 +10,7 @@ on:
       - 'launch-readiness.html'
       - 'assets/launch-readiness.js'
       - 'assets/launch-readiness.css'
+      - 'assets/homepage-polish.css'
       - 'assets/launch-evidence.js'
       - 'assets/launch-controls.js'
       - 'course-alignment/**'
