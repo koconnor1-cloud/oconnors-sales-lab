@@ -39,10 +39,11 @@ try{
 
     await page.waitForFunction(()=>typeof window.openInstructorSession==='function'&&typeof window.backToStudentSessions==='function'&&typeof window.renderTeacherClassAnalytics==='function'&&typeof window.analyticsSkillData==='function',{timeout:10000});
     const scripts=await page.locator('script[src]').evaluateAll(nodes=>nodes.map(n=>n.getAttribute('src')));
-    if(!scripts.includes('assets/launch-evidence.js'))throw new Error(`${name}: evidence-scoring extension did not load`);
-    if(!scripts.includes('assets/launch-controls.js'))throw new Error(`${name}: workflow-control extension did not load`);
-    if(!scripts.includes('assets/instructor-session-review.js'))throw new Error(`${name}: instructor-session-review extension did not load`);
-    if(!scripts.includes('assets/teacher-class-analytics.js'))throw new Error(`${name}: teacher-class-analytics extension did not load`);
+    const hasScript=base=>scripts.some(src=>src===base||src?.startsWith(base+'?'));
+    if(!hasScript('assets/launch-evidence.js'))throw new Error(`${name}: evidence-scoring extension did not load`);
+    if(!hasScript('assets/launch-controls.js'))throw new Error(`${name}: workflow-control extension did not load`);
+    if(!hasScript('assets/instructor-session-review.js'))throw new Error(`${name}: instructor-session-review extension did not load`);
+    if(!hasScript('assets/teacher-class-analytics.js'))throw new Error(`${name}: teacher-class-analytics extension did not load`);
     const controls=await page.evaluate(()=>({
       returnGradeForReview:typeof window.returnGradeForReview,
       setShowdownResultsReleased:typeof window.setShowdownResultsReleased,
