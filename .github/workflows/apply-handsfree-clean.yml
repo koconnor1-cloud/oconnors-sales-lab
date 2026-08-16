@@ -1,0 +1,52 @@
+name: Apply Hands-Free to Clean Branch
+on:
+  push:
+    branches:
+      - agent/student-handsfree-updater
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/student-handsfree-clean
+      - name: Wire hands-free asset and smoke coverage
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('index.html'); s=p.read_text()
+          old='<script src="assets/launch-evidence.js?v=20260816-analytics2"></script>'
+          if old not in s: old='<script src="assets/launch-evidence.js"></script>'
+          if old not in s: raise SystemExit('launch-evidence script tag not found')
+          if 'assets/student-handsfree.js' not in s: s=s.replace(old,old+'\n<script src="assets/student-handsfree.js?v=20260816-conversation1"></script>',1)
+          p.write_text(s)
+
+          p=Path('tools/smoke-launch-readiness.mjs'); s=p.read_text()
+          marker="    if(!hasScript('assets/teacher-class-analytics.js'))throw new Error(`${name}: teacher-class-analytics extension did not load`);"
+          if marker not in s: raise SystemExit('script marker not found')
+          if 'student hands-free extension did not load' not in s:
+              s=s.replace(marker,marker+"\n    if(!hasScript('assets/student-handsfree.js'))throw new Error(`${name}: student hands-free extension did not load`);",1)
+          marker="      analyticsSkillData:typeof window.analyticsSkillData,"
+          if marker not in s: raise SystemExit('controls marker not found')
+          if 'toggleHandsFree:typeof window.toggleHandsFree' not in s:
+              s=s.replace(marker,marker+"\n      toggleHandsFree:typeof window.toggleHandsFree,\n      enableHandsFree:typeof window.enableHandsFree,\n      disableHandsFree:typeof window.disableHandsFree,",1)
+          oldlist="'renderTeacherClassAnalytics','analyticsSkillData'"
+          if oldlist not in s: raise SystemExit('function-list marker not found')
+          s=s.replace(oldlist,"'renderTeacherClassAnalytics','analyticsSkillData','toggleHandsFree','enableHandsFree','disableHandsFree'",1)
+          marker="    if(analytics.minutesCold!=='15 min'||analytics.minutesZero!=='0 min')throw new Error(`${name}: practice-minute formatting is incorrect`);"
+          if marker not in s: raise SystemExit('analytics marker not found')
+          if 'Hands-free control is missing' not in s:
+              test="""\n    const hf=await page.evaluate(()=>({button:document.querySelector('#handsfree-toggle')?.textContent||'',hasManualMic:typeof window.toggleMic==='function'}));\n    if(!hf.button.includes('Hands-free'))throw new Error(`${name}: Hands-free control is missing`);\n    if(!hf.hasManualMic)throw new Error(`${name}: push-to-talk fallback is missing`);\n"""
+              s=s.replace(marker,marker+test,1)
+          p.write_text(s)
+          PY
+      - name: Commit to clean branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html tools/smoke-launch-readiness.mjs
+          git diff --cached --quiet && exit 0
+          git commit -m "Wire hands-free student conversation mode"
+          git push origin HEAD:agent/student-handsfree-clean
