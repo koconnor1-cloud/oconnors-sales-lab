@@ -121,3 +121,9 @@ window.openInstructorSession=async function(sessionId){
     ${reviewTranscriptHtml(transcript)}
   `;
 };
+
+// Load class-level practice and skill analytics for the instructor dashboard.
+const teacherClassAnalyticsScript=document.createElement('script');
+teacherClassAnalyticsScript.src='assets/teacher-class-analytics.js';
+teacherClassAnalyticsScript.async=false;
+document.body.appendChild(teacherClassAnalyticsScript);
