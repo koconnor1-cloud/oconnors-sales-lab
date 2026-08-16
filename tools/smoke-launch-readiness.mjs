@@ -37,11 +37,12 @@ try{
     const studentAgain=await heroCards.boundingBox();
     if(!studentAgain||Math.abs(studentAgain.y-studentBox.y)>2)throw new Error(`${name}: hero does not return to its locked position`);
 
-    await page.waitForFunction(()=>typeof window.openInstructorSession==='function'&&typeof window.backToStudentSessions==='function',{timeout:10000});
+    await page.waitForFunction(()=>typeof window.openInstructorSession==='function'&&typeof window.backToStudentSessions==='function'&&typeof window.renderTeacherClassAnalytics==='function'&&typeof window.analyticsSkillData==='function',{timeout:10000});
     const scripts=await page.locator('script[src]').evaluateAll(nodes=>nodes.map(n=>n.getAttribute('src')));
     if(!scripts.includes('assets/launch-evidence.js'))throw new Error(`${name}: evidence-scoring extension did not load`);
     if(!scripts.includes('assets/launch-controls.js'))throw new Error(`${name}: workflow-control extension did not load`);
     if(!scripts.includes('assets/instructor-session-review.js'))throw new Error(`${name}: instructor-session-review extension did not load`);
+    if(!scripts.includes('assets/teacher-class-analytics.js'))throw new Error(`${name}: teacher-class-analytics extension did not load`);
     const controls=await page.evaluate(()=>({
       returnGradeForReview:typeof window.returnGradeForReview,
       setShowdownResultsReleased:typeof window.setShowdownResultsReleased,
@@ -52,12 +53,31 @@ try{
       teacherViewStudent:typeof window.teacherViewStudent,
       openInstructorSession:typeof window.openInstructorSession,
       backToStudentSessions:typeof window.backToStudentSessions,
+      renderTeacherClassAnalytics:typeof window.renderTeacherClassAnalytics,
+      analyticsSkillData:typeof window.analyticsSkillData,
       recoveryUrl:window.SALES_LAB_RECOVERY_URL
     }));
-    for(const fn of ['returnGradeForReview','setShowdownResultsReleased','renderReleasedShowdownStandings','resetPassword','showPasswordRecovery','updateRecoveredPassword','teacherViewStudent','openInstructorSession','backToStudentSessions']){
+    for(const fn of ['returnGradeForReview','setShowdownResultsReleased','renderReleasedShowdownStandings','resetPassword','showPasswordRecovery','updateRecoveredPassword','teacherViewStudent','openInstructorSession','backToStudentSessions','renderTeacherClassAnalytics','analyticsSkillData']){
       if(controls[fn]!=='function')throw new Error(`${name}: ${fn} is not available`);
     }
     if(controls.recoveryUrl!=='https://koconnor1-cloud.github.io/oconnors-sales-lab/')throw new Error(`${name}: password reset is not pinned to the live Sales Lab URL`);
+
+    // Analytics calculations must tolerate missing values and preserve all eight skills.
+    const analytics=await page.evaluate(()=>{
+      const mock=[
+        {scenario:'cold',duration_seconds:600,rapport:8,clarity:7,confidence:7,close_score:6,discovery:5,value_prop:4,objections:6,listening:8},
+        {scenario:'cold',duration_seconds:300,rapport:6,clarity:null,confidence:5,close_score:6,discovery:4,value_prop:3,objections:5,listening:7},
+        {scenario:'discovery',duration_seconds:420,rapport:7,clarity:8,confidence:7,close_score:5,discovery:9,value_prop:6,objections:6,listening:9}
+      ];
+      const skills=window.analyticsSkillData(mock);
+      return {skills,minutesCold:window.analyticsMinutes(900),minutesZero:window.analyticsMinutes(0)};
+    });
+    if(analytics.skills.length!==8)throw new Error(`${name}: class analytics did not return eight skill metrics`);
+    const rapport=analytics.skills.find(s=>s.key==='rapport');
+    const clarity=analytics.skills.find(s=>s.key==='clarity');
+    if(Math.abs(rapport.average-7)>0.001||rapport.count!==3)throw new Error(`${name}: rapport aggregation is incorrect`);
+    if(Math.abs(clarity.average-7.5)>0.001||clarity.count!==2)throw new Error(`${name}: missing skill values are not handled correctly`);
+    if(analytics.minutesCold!=='15 min'||analytics.minutesZero!=='0 min')throw new Error(`${name}: practice-minute formatting is incorrect`);
 
     fs.mkdirSync('smoke-artifacts',{recursive:true});
     await page.screenshot({path:`smoke-artifacts/${name}.png`,fullPage:true});
@@ -99,5 +119,5 @@ try{
   await expired.close();
 
   await browser.close();
-  console.log('Desktop/iPad layout, recovery startup interception, and instructor session-review smoke tests passed.');
+  console.log('Desktop/iPad layout, recovery, instructor review, and class analytics smoke tests passed.');
 } finally {server.kill('SIGTERM')}
