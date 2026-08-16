@@ -1,0 +1,94 @@
+name: Fix Buyer Dialogue and TTS
+
+on:
+  push:
+    branches:
+      - agent/fix-buyer-dialogue-tts
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/fix-buyer-dialogue-tts
+      - name: Harden buyer dialogue and speech
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          p=Path('assets/launch-readiness.js')
+          s=p.read_text()
+
+          old='CHARACTER: [2-3 sentence in-character buyer reply]\\\n'
+          new='CHARACTER: Write 1-3 natural sentences that the buyer would actually say aloud. Do not include brackets, parentheses, labels, stage directions, tone notes, pacing notes, delivery instructions, or placeholders.\\\n'
+          if old not in s:
+              raise SystemExit('character prompt placeholder not found')
+          s=s.replace(old,new,1)
+
+          marker='async function sendMessage(){'
+          guard=r'''function cleanBuyerDialogue(text){
+  let s=String(text||'').trim().replace(/^CHARACTER:\s*/i,'');
+  s=s.replace(/^\s*\[[^\]]*\]\s*/g,'').replace(/^\s*\([^)]*\)\s*/g,'');
+  s=s.replace(/\[[^\]]*(?:tone|pace|pacing|pause|delivery|stage|emotion|expression|gesture|voice|speak|in-character|buyer reply|response)[^\]]*\]/gi,' ');
+  s=s.replace(/\s+/g,' ').trim().replace(/^["“]+|["”]+$/g,'').trim();
+  if(/^(?:2\s*[-–]\s*3\s+sentences?|in[- ]character buyer reply|buyer reply|response goes here|tone\s*:|pacing\s*:|delivery\s*:)/i.test(s))return'';
+  return s;
+}
+function buildBuyerRecoveryPrompt(){const b=BUYERS[APP.selectedBuyer],s=SCENARIOS[APP.selectedScenario],context=CONTEXTS[el('context-select')?.value||'b2bservice'];return `${b.system} You are in a ${s.name} practice conversation about ${context}. Respond directly to the seller's latest message as the buyer. Output only the words the buyer would actually say aloud, in 1-3 natural sentences. Do not output labels, brackets, parentheses, stage directions, tone or pacing notes, delivery instructions, coaching, scores, or placeholders.`}
+
+'''
+          if marker not in s:
+              raise SystemExit('sendMessage marker not found')
+          if 'function cleanBuyerDialogue(text)' not in s:
+              s=s.replace(marker,guard+marker,1)
+
+          oldfrag="buyer=(cm?cm[1]:full).trim(),feedback=(fm?fm[1]:'').trim();if(buyer){addMessage('buyer',buyer);speak(buyer)}if(feedback)"
+          newfrag="buyer=cleanBuyerDialogue((cm?cm[1]:full).trim()),feedback=(fm?fm[1]:'').trim();if(!buyer){try{const retry=await callAI('chat',{messages:[{role:'system',content:buildBuyerRecoveryPrompt()},...APP.history],max_tokens:220});buyer=cleanBuyerDialogue(retry.choices?.[0]?.message?.content||'')}catch{}}if(buyer){addMessage('buyer',buyer);speak(buyer)}else{addMessage('coach','The buyer response could not be generated. Please send your message again.')}if(feedback)"
+          if oldfrag not in s:
+              raise SystemExit('sendMessage buyer fragment not found')
+          s=s.replace(oldfrag,newfrag,1)
+
+          oldspeak="async function speak(text){if(!APP.voiceEnabled)return;stopAudio();try{const d=await callAI('tts',{voice:BUYERS[APP.selectedBuyer].voice,text}),"
+          newspeak="async function speak(text){if(!APP.voiceEnabled)return;const spoken=cleanBuyerDialogue(text);if(!spoken)return;stopAudio();try{const d=await callAI('tts',{voice:BUYERS[APP.selectedBuyer].voice,text:spoken}),"
+          if oldspeak not in s:
+              raise SystemExit('speak function pattern not found')
+          s=s.replace(oldspeak,newspeak,1)
+          p.write_text(s)
+
+          p=Path('index.html')
+          s=p.read_text()
+          s=re.sub(r'assets/launch-readiness\.js\?v=[^"\']+', 'assets/launch-readiness.js?v=20260816-student1', s)
+          p.write_text(s)
+
+          p=Path('tools/smoke-launch-readiness.mjs')
+          s=p.read_text()
+          marker="    if(controls.recoveryUrl!=='https://koconnor1-cloud.github.io/oconnors-sales-lab/')throw new Error(`${name}: password reset is not pinned to the live Sales Lab URL`);"
+          test=r'''    const dialogueGuard=await page.evaluate(()=>({
+      cleaned:window.cleanBuyerDialogue('[Tone: upbeat and conversational] Thanks for reaching out. What problem are you hoping to solve?'),
+      metaOnly:window.cleanBuyerDialogue('[2-3 sentence in-character buyer reply]'),
+      prompt:window.buildSystemPrompt()
+    }));
+    if(dialogueGuard.cleaned!=='Thanks for reaching out. What problem are you hoping to solve?')throw new Error(`${name}: buyer dialogue guard did not strip bracketed delivery notes`);
+    if(dialogueGuard.metaOnly!=='')throw new Error(`${name}: buyer dialogue guard did not reject a bracketed placeholder`);
+    if(dialogueGuard.prompt.includes('[2-3 sentence in-character buyer reply]')||!dialogueGuard.prompt.includes('Do not include brackets'))throw new Error(`${name}: buyer prompt still permits placeholder/stage-direction output`);
+'''
+          if marker not in s:
+              raise SystemExit('smoke insertion marker not found')
+          if 'const dialogueGuard=await page.evaluate' not in s:
+              s=s.replace(marker,test+marker,1)
+          p.write_text(s)
+          PY
+      - name: Commit buyer dialogue fix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/launch-readiness.js index.html tools/smoke-launch-readiness.mjs
+          git diff --cached --quiet && exit 0
+          git commit -m "Fix buyer dialogue and TTS stage-direction leakage"
+          git push origin HEAD:agent/fix-buyer-dialogue-tts
