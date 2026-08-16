@@ -37,9 +37,11 @@ try{
     const studentAgain=await heroCards.boundingBox();
     if(!studentAgain||Math.abs(studentAgain.y-studentBox.y)>2)throw new Error(`${name}: hero does not return to its locked position`);
 
+    await page.waitForFunction(()=>typeof window.openInstructorSession==='function'&&typeof window.backToStudentSessions==='function',{timeout:10000});
     const scripts=await page.locator('script[src]').evaluateAll(nodes=>nodes.map(n=>n.getAttribute('src')));
     if(!scripts.includes('assets/launch-evidence.js'))throw new Error(`${name}: evidence-scoring extension did not load`);
     if(!scripts.includes('assets/launch-controls.js'))throw new Error(`${name}: workflow-control extension did not load`);
+    if(!scripts.includes('assets/instructor-session-review.js'))throw new Error(`${name}: instructor-session-review extension did not load`);
     const controls=await page.evaluate(()=>({
       returnGradeForReview:typeof window.returnGradeForReview,
       setShowdownResultsReleased:typeof window.setShowdownResultsReleased,
@@ -47,9 +49,12 @@ try{
       resetPassword:typeof window.resetPassword,
       showPasswordRecovery:typeof window.showPasswordRecovery,
       updateRecoveredPassword:typeof window.updateRecoveredPassword,
+      teacherViewStudent:typeof window.teacherViewStudent,
+      openInstructorSession:typeof window.openInstructorSession,
+      backToStudentSessions:typeof window.backToStudentSessions,
       recoveryUrl:window.SALES_LAB_RECOVERY_URL
     }));
-    for(const fn of ['returnGradeForReview','setShowdownResultsReleased','renderReleasedShowdownStandings','resetPassword','showPasswordRecovery','updateRecoveredPassword']){
+    for(const fn of ['returnGradeForReview','setShowdownResultsReleased','renderReleasedShowdownStandings','resetPassword','showPasswordRecovery','updateRecoveredPassword','teacherViewStudent','openInstructorSession','backToStudentSessions']){
       if(controls[fn]!=='function')throw new Error(`${name}: ${fn} is not available`);
     }
     if(controls.recoveryUrl!=='https://koconnor1-cloud.github.io/oconnors-sales-lab/')throw new Error(`${name}: password reset is not pinned to the live Sales Lab URL`);
@@ -80,5 +85,5 @@ try{
   await expired.close();
 
   await browser.close();
-  console.log('Desktop/iPad layout, live password-recovery UI, and expired-link handling smoke tests passed.');
+  console.log('Desktop/iPad layout, recovery flow, and instructor session-review module smoke tests passed.');
 } finally {server.kill('SIGTERM')}
