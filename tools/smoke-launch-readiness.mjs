@@ -73,6 +73,20 @@ try{
     await page.close();
   }
 
+  // A valid recovery URL must intercept ordinary profile/dashboard routing before it wins the race.
+  const recovery=await browser.newPage({viewport:{width:1440,height:1000}});
+  const recoveryErrors=[];
+  recovery.on('pageerror',e=>recoveryErrors.push(e.message));
+  await recovery.goto('http://127.0.0.1:4173/index.html#type=recovery',{waitUntil:'networkidle',timeout:30000});
+  await recovery.waitForFunction(()=>window.SALES_LAB_RECOVERY_BOOT===true&&typeof window.showPasswordRecovery==='function',null,{timeout:10000});
+  await recovery.evaluate(async()=>{APP.user={id:'smoke-recovery-user',email:'instructor@example.edu'};await loadProfile()});
+  await recovery.waitForSelector('#recovery-password',{timeout:10000});
+  if(await recovery.locator('#teacher-home.active').count())throw new Error('valid recovery flow routed into instructor dashboard before password reset');
+  const recoveryHeading=await recovery.textContent('#auth-page .auth-panel h2');
+  if(!recoveryHeading?.includes('Choose a new password'))throw new Error('valid recovery flow did not show the new-password screen');
+  if(recoveryErrors.length)throw new Error(`recovery-startup browser errors: ${recoveryErrors.join(' | ')}`);
+  await recovery.close();
+
   // Expired one-time links should return to the live auth page with useful instructions.
   const expired=await browser.newPage({viewport:{width:1440,height:1000}});
   const expiredErrors=[];
@@ -85,5 +99,5 @@ try{
   await expired.close();
 
   await browser.close();
-  console.log('Desktop/iPad layout, recovery flow, and instructor session-review module smoke tests passed.');
+  console.log('Desktop/iPad layout, recovery startup interception, and instructor session-review smoke tests passed.');
 } finally {server.kill('SIGTERM')}
