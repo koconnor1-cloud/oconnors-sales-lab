@@ -1,0 +1,59 @@
+name: Patch Scenario Aware VAD
+on:
+  push:
+    branches:
+      - agent/scenario-aware-vad-work
+permissions:
+  contents: write
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/scenario-aware-vad-work
+      - name: Apply scenario-aware turn detection
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('assets/student-handsfree.js')
+          s=p.read_text()
+          s=s.replace("silenceMs:900,openingSilenceMs:1600,firstTurnWarmupMs:650", "silenceMs:900,openingSilenceMs:1600,elevatorSilenceMs:2600,presentationSilenceMs:2200,integratedSilenceMs:1800,interviewSilenceMs:1800,firstTurnWarmupMs:650", 1)
+          anchor="function openingTurnProtectionActive(){return substantiveStudentTurnCount()<2}\n"
+          addition="function handsFreeScenarioSilenceMs(){const scenario=APP.selectedScenario;if(scenario==='elevator')return HANDSFREE.elevatorSilenceMs;if(scenario==='presentation')return HANDSFREE.presentationSilenceMs;if(scenario==='integrated')return HANDSFREE.integratedSilenceMs;if(scenario==='interview')return HANDSFREE.interviewSilenceMs;return openingTurnProtectionActive()?HANDSFREE.openingSilenceMs:HANDSFREE.silenceMs}\n"
+          if anchor not in s: raise SystemExit('scenario threshold anchor not found')
+          s=s.replace(anchor,anchor+addition,1)
+          old="if(level>HANDSFREE.threshold){if(!HANDSFREE.speechStarted){HANDSFREE.speechStarted=true;HANDSFREE.speechStartedAt=now;handsFreeStatus('Listening…')}HANDSFREE.lastVoiceAt=now;HANDSFREE.voicedMs+=delta}const silenceThreshold=openingTurnProtectionActive()?HANDSFREE.openingSilenceMs:HANDSFREE.silenceMs;if(HANDSFREE.speechStarted&&now-HANDSFREE.lastVoiceAt>=silenceThreshold){"
+          new="if(level>HANDSFREE.threshold){if(!HANDSFREE.speechStarted){HANDSFREE.speechStarted=true;HANDSFREE.speechStartedAt=now}handsFreeStatus('Listening…');HANDSFREE.lastVoiceAt=now;HANDSFREE.voicedMs+=delta}const silenceThreshold=handsFreeScenarioSilenceMs(),quietFor=HANDSFREE.speechStarted?now-HANDSFREE.lastVoiceAt:0;if(HANDSFREE.speechStarted&&quietFor>=HANDSFREE.silenceMs&&quietFor<silenceThreshold&&silenceThreshold>HANDSFREE.silenceMs)handsFreeStatus('Still listening…');if(HANDSFREE.speechStarted&&quietFor>=silenceThreshold){"
+          if old not in s: raise SystemExit('monitor threshold anchor not found')
+          s=s.replace(old,new,1)
+          old="recorder.start(250);handsFreeStatus(openingProtected?'Listening… take your time':'Listening… speak naturally');HANDSFREE.raf=requestAnimationFrame(handsFreeMonitor)"
+          new="recorder.start(250);const turnSilence=handsFreeScenarioSilenceMs();handsFreeStatus(turnSilence>HANDSFREE.silenceMs?'Listening… take your time':'Listening… speak naturally');HANDSFREE.raf=requestAnimationFrame(handsFreeMonitor)"
+          if old not in s: raise SystemExit('capture status anchor not found')
+          s=s.replace(old,new,1)
+          p.write_text(s)
+
+          p=Path('index.html')
+          s=p.read_text()
+          old='assets/student-handsfree.js?v=20260816-conversation4'
+          new='assets/student-handsfree.js?v=20260816-conversation5'
+          if old not in s: raise SystemExit('conversation4 asset tag not found')
+          p.write_text(s.replace(old,new,1))
+
+          p=Path('tools/smoke-launch-readiness.mjs')
+          s=p.read_text()
+          anchor="    if(!hf.hasManualMic)throw new Error(`${name}: push-to-talk fallback is missing`);\n"
+          addition=r'''    const vad=await page.evaluate(()=>{const savedScenario=APP.selectedScenario,savedHistory=[...APP.history];APP.history=[];APP.selectedScenario='elevator';const elevator=handsFreeScenarioSilenceMs();APP.selectedScenario='presentation';const presentation=handsFreeScenarioSilenceMs();APP.selectedScenario='integrated';const integrated=handsFreeScenarioSilenceMs();APP.selectedScenario='cold';APP.history=[{role:'user',content:'We help distributors lower freight cost.'},{role:'user',content:'Would it make sense to compare lanes?'}];const cold=handsFreeScenarioSilenceMs();APP.selectedScenario=savedScenario;APP.history=savedHistory;return{elevator,presentation,integrated,cold};});
+    if(vad.elevator!==2600||vad.presentation!==2200||vad.integrated!==1800||vad.cold!==900)throw new Error(`${name}: scenario-aware silence thresholds are incorrect`);
+'''
+          if anchor not in s: raise SystemExit('smoke VAD anchor not found')
+          p.write_text(s.replace(anchor,anchor+addition,1))
+          PY
+      - name: Commit scenario-aware VAD
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/student-handsfree.js index.html tools/smoke-launch-readiness.mjs
+          git commit -m "Make hands-free turn detection scenario aware"
+          git push origin HEAD:agent/scenario-aware-vad-work
