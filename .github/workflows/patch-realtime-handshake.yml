@@ -1,0 +1,67 @@
+name: Patch Realtime Handshake
+on:
+  push:
+    branches:
+      - agent/realtime-handshake-fallback
+permissions:
+  contents: write
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/realtime-handshake-fallback
+      - name: Cachebust and add semantic regression checks
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p=Path('index.html')
+          s=p.read_text()
+          old='assets/student-handsfree.js?v=20260816-semantic1'
+          new='assets/student-handsfree.js?v=20260816-semantic2'
+          if old not in s: raise SystemExit('semantic1 asset tag not found')
+          p.write_text(s.replace(old,new,1))
+
+          p=Path('tools/smoke-launch-readiness.mjs')
+          s=p.read_text()
+          old="""    const hf=await page.evaluate(()=>({button:document.querySelector('#handsfree-toggle')?.textContent||'',hasManualMic:typeof window.toggleMic==='function'}));
+    if(!hf.button.includes('Hands-free'))throw new Error(`${name}: Hands-free control is missing`);
+    if(!hf.hasManualMic)throw new Error(`${name}: push-to-talk fallback is missing`);
+"""
+          new="""    const hf=await page.evaluate(()=>{
+      const saved=APP.selectedScenario;
+      APP.selectedScenario='elevator';
+      const longEagerness=window.semanticEagerness?.();
+      APP.selectedScenario='cold';
+      const conversationalEagerness=window.semanticEagerness?.();
+      const update=window.semanticSessionUpdate?.();
+      APP.selectedScenario=saved;
+      return {
+        button:document.querySelector('#handsfree-toggle')?.textContent||'',
+        hasManualMic:typeof window.toggleMic==='function',
+        longEagerness,
+        conversationalEagerness,
+        update
+      };
+    });
+    if(!hf.button.includes('Hands-free'))throw new Error(`${name}: Hands-free control is missing`);
+    if(!hf.hasManualMic)throw new Error(`${name}: push-to-talk fallback is missing`);
+    if(hf.longEagerness!=='low'||hf.conversationalEagerness!=='medium')throw new Error(`${name}: semantic VAD eagerness is not scenario-aware`);
+    const vad=hf.update?.session?.audio?.input?.turn_detection;
+    const tx=hf.update?.session?.audio?.input?.transcription;
+    if(vad?.type!=='semantic_vad'||vad?.create_response!==false||vad?.interrupt_response!==false)throw new Error(`${name}: semantic VAD session update is invalid`);
+    if(tx?.model!=='gpt-4o-mini-transcribe')throw new Error(`${name}: realtime transcription model is incorrect`);
+"""
+          if old not in s: raise SystemExit('hands-free smoke anchor not found')
+          p.write_text(s.replace(old,new,1))
+          PY
+      - name: Commit patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html tools/smoke-launch-readiness.mjs
+          git commit -m "Cachebust and validate Realtime handshake"
+          git push origin HEAD:agent/realtime-handshake-fallback
