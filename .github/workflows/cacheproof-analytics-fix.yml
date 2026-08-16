@@ -1,0 +1,56 @@
+name: Cacheproof Teacher Analytics Fix
+
+on:
+  push:
+    branches:
+      - agent/cacheproof-teacher-analytics
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/cacheproof-teacher-analytics
+      - name: Version dashboard asset chain and force first render
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          v='20260816-analytics2'
+
+          p=Path('index.html')
+          s=p.read_text()
+          s=s.replace('href="assets/launch-readiness.css"','href="assets/launch-readiness.css?v='+v+'"')
+          s=s.replace('src="assets/launch-readiness.js"','src="assets/launch-readiness.js?v='+v+'"')
+          s=s.replace('src="assets/launch-evidence.js"','src="assets/launch-evidence.js?v='+v+'"')
+          p.write_text(s)
+
+          p=Path('assets/launch-evidence.js')
+          s=p.read_text().replace("workflowControlsScript.src='assets/launch-controls.js';", "workflowControlsScript.src='assets/launch-controls.js?v="+v+"';")
+          p.write_text(s)
+
+          p=Path('assets/launch-controls.js')
+          s=p.read_text().replace("instructorSessionReviewScript.src='assets/instructor-session-review.js';", "instructorSessionReviewScript.src='assets/instructor-session-review.js?v="+v+"';")
+          p.write_text(s)
+
+          p=Path('assets/instructor-session-review.js')
+          s=p.read_text().replace("teacherClassAnalyticsScript.src='assets/teacher-class-analytics.js';", "teacherClassAnalyticsScript.src='assets/teacher-class-analytics.js?v="+v+"';")
+          old="teacherClassAnalyticsScript.async=false;\ndocument.body.appendChild(teacherClassAnalyticsScript);"
+          new="teacherClassAnalyticsScript.async=false;\nteacherClassAnalyticsScript.onload=()=>window.renderTeacherClassAnalytics?.();\ndocument.body.appendChild(teacherClassAnalyticsScript);"
+          if old not in s:
+              raise SystemExit('analytics loader pattern not found')
+          s=s.replace(old,new)
+          p.write_text(s)
+          PY
+      - name: Commit cacheproof asset chain
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html assets/launch-evidence.js assets/launch-controls.js assets/instructor-session-review.js
+          git diff --cached --quiet && exit 0
+          git commit -m "Cacheproof teacher analytics loading"
+          git push origin HEAD:agent/cacheproof-teacher-analytics
