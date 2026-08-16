@@ -8,7 +8,7 @@
 #auth-page .auth-brand h1{font-size:clamp(40px,4vw,58px);line-height:1.04;letter-spacing:-.035em;max-width:650px;margin:24px 0 18px;position:relative;z-index:1}
 #auth-page .auth-brand h1 span{color:var(--gold2)}
 #auth-page .auth-brand p{font-size:clamp(14px,1.25vw,17px);line-height:1.75;max-width:620px;color:rgba(255,255,255,.7);margin:0;position:relative;z-index:1}
-#auth-page .auth-brand>div:last-child{margin-top:auto!important;margin-bottom:42px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;max-width:680px;position:relative;z-index:1;padding-top:30px}
+#auth-page .auth-brand>div:last-child{margin-top:26px!important;margin-bottom:42px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;max-width:680px;position:relative;z-index:1;padding-top:0}
 #auth-page .feature{display:flex;align-items:flex-start;gap:9px;margin:0;padding:14px 15px;border:1px solid rgba(255,255,255,.11);background:rgba(255,255,255,.055);border-radius:13px;backdrop-filter:blur(8px);font-size:12px;line-height:1.5;color:rgba(255,255,255,.73);min-height:82px;transition:transform .18s ease,border-color .18s ease,background .18s ease}
 #auth-page .feature:hover{transform:translateY(-2px);border-color:rgba(232,179,16,.38);background:rgba(255,255,255,.075)}
 #auth-page .feature b{width:22px;height:22px;display:grid;place-items:center;border-radius:50%;background:rgba(232,179,16,.16);border:1px solid rgba(232,179,16,.28);color:var(--gold2);flex:0 0 22px}
