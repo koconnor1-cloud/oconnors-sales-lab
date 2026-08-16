@@ -1,0 +1,210 @@
+/* Student hands-free conversation mode.
+   Keeps push-to-talk as a fallback while allowing a natural turn-taking experience:
+   listen locally -> detect end of speech -> transcribe -> send -> buyer speaks -> resume listening.
+   Free-practice audio remains transient and is not durably stored. */
+
+const HANDSFREE={
+  enabled:false,
+  stream:null,
+  audioContext:null,
+  analyser:null,
+  recorder:null,
+  chunks:[],
+  raf:null,
+  speechStarted:false,
+  speechStartedAt:0,
+  lastVoiceAt:0,
+  processing:false,
+  discardCurrent:false,
+  threshold:0.028,
+  silenceMs:900,
+  minSpeechMs:350
+};
+
+function handsFreeButton(){return document.getElementById('handsfree-toggle')}
+function handsFreeStatus(text){const v=el('voice-status');if(v)v.textContent=text||''}
+function handsFreeSetButton(){
+  const b=handsFreeButton();
+  if(!b)return;
+  b.textContent=HANDSFREE.enabled?'Hands-free on':'Hands-free';
+  b.className='btn '+(HANDSFREE.enabled?'btn-gold':'btn-outline')+' btn-sm';
+  b.setAttribute('aria-pressed',HANDSFREE.enabled?'true':'false');
+}
+
+function installHandsFreeButton(){
+  if(handsFreeButton())return;
+  const actions=document.querySelector('#arena-page .arena-head .footer-actions');
+  const voice=el('voice-toggle');
+  if(!actions||!voice)return;
+  const b=document.createElement('button');
+  b.id='handsfree-toggle';
+  b.type='button';
+  b.className='btn btn-outline btn-sm';
+  b.textContent='Hands-free';
+  b.title='Keep the microphone ready and send each spoken turn automatically after a short pause.';
+  b.onclick=toggleHandsFree;
+  actions.insertBefore(b,voice.nextSibling);
+}
+
+function handsFreeAudioLevel(){
+  if(!HANDSFREE.analyser)return 0;
+  const values=new Uint8Array(HANDSFREE.analyser.fftSize);
+  HANDSFREE.analyser.getByteTimeDomainData(values);
+  let sum=0;
+  for(const v of values){const n=(v-128)/128;sum+=n*n}
+  return Math.sqrt(sum/values.length);
+}
+
+function cancelHandsFreeLoop(){if(HANDSFREE.raf){cancelAnimationFrame(HANDSFREE.raf);HANDSFREE.raf=null}}
+
+function handsFreeMonitor(){
+  if(!HANDSFREE.enabled||!HANDSFREE.recorder||HANDSFREE.recorder.state!=='recording')return;
+  const now=performance.now(),level=handsFreeAudioLevel();
+  if(level>HANDSFREE.threshold){
+    if(!HANDSFREE.speechStarted){HANDSFREE.speechStarted=true;HANDSFREE.speechStartedAt=now;handsFreeStatus('Listening…')}
+    HANDSFREE.lastVoiceAt=now;
+  }
+  if(HANDSFREE.speechStarted&&now-HANDSFREE.lastVoiceAt>=HANDSFREE.silenceMs&&now-HANDSFREE.speechStartedAt>=HANDSFREE.minSpeechMs){
+    stopHandsFreeCapture(false);
+    return;
+  }
+  HANDSFREE.raf=requestAnimationFrame(handsFreeMonitor);
+}
+
+function stopHandsFreeCapture(discard=true){
+  cancelHandsFreeLoop();
+  if(HANDSFREE.recorder?.state==='recording'){
+    HANDSFREE.discardCurrent=discard;
+    HANDSFREE.recorder.stop();
+  }
+}
+
+async function startHandsFreeCapture(){
+  if(!HANDSFREE.enabled||HANDSFREE.processing||!HANDSFREE.stream)return;
+  if(APP.currentAudio&&!APP.currentAudio.paused&&!APP.currentAudio.ended)return;
+  if(HANDSFREE.recorder?.state==='recording')return;
+  HANDSFREE.chunks=[];
+  HANDSFREE.speechStarted=false;
+  HANDSFREE.speechStartedAt=0;
+  HANDSFREE.lastVoiceAt=0;
+  HANDSFREE.discardCurrent=false;
+  const recorder=new MediaRecorder(HANDSFREE.stream,recorderOptions());
+  HANDSFREE.recorder=recorder;
+  recorder.ondataavailable=e=>{if(e.data.size)HANDSFREE.chunks.push(e.data)};
+  recorder.onstop=async()=>{
+    const discard=HANDSFREE.discardCurrent;
+    HANDSFREE.recorder=null;
+    if(discard||!HANDSFREE.enabled)return;
+    const blob=new Blob(HANDSFREE.chunks,{type:recorder.mimeType||HANDSFREE.chunks[0]?.type||'audio/webm'});
+    if(blob.size<600){handsFreeStatus('Listening…');return startHandsFreeCapture()}
+    await processHandsFreeTurn(blob);
+  };
+  recorder.start(250);
+  handsFreeStatus('Listening… speak naturally');
+  HANDSFREE.raf=requestAnimationFrame(handsFreeMonitor);
+}
+
+async function processHandsFreeTurn(blob){
+  if(!HANDSFREE.enabled)return;
+  HANDSFREE.processing=true;
+  handsFreeStatus('Transcribing…');
+  try{
+    const base64=await blobToBase64(blob);
+    const d=await callAI('transcribe',{audio:base64,mimeType:blob.type});
+    const text=String(d?.text||'').trim();
+    if(text.length<2){
+      handsFreeStatus('I didn’t catch that. Listening…');
+      HANDSFREE.processing=false;
+      return startHandsFreeCapture();
+    }
+    const box=el('chat-input');
+    if(box)box.value=text;
+    APP.recordedVoice=true;
+    handsFreeStatus('Sending your turn…');
+    await sendMessage();
+  }catch(e){
+    console.warn('Hands-free turn',e);
+    handsFreeStatus('Hands-free had trouble with that turn. Listening again…');
+  }finally{
+    HANDSFREE.processing=false;
+    if(HANDSFREE.enabled&&(!APP.currentAudio||APP.currentAudio.paused||APP.currentAudio.ended))setTimeout(startHandsFreeCapture,180);
+  }
+}
+
+async function enableHandsFree(){
+  installHandsFreeButton();
+  if(HANDSFREE.enabled)return;
+  try{
+    stopAudio();
+    HANDSFREE.stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
+    const AudioCtx=window.AudioContext||window.webkitAudioContext;
+    HANDSFREE.audioContext=new AudioCtx();
+    await HANDSFREE.audioContext.resume?.();
+    const source=HANDSFREE.audioContext.createMediaStreamSource(HANDSFREE.stream);
+    HANDSFREE.analyser=HANDSFREE.audioContext.createAnalyser();
+    HANDSFREE.analyser.fftSize=1024;
+    HANDSFREE.analyser.smoothingTimeConstant=.3;
+    source.connect(HANDSFREE.analyser);
+    HANDSFREE.enabled=true;
+    APP.voiceEnabled=true;
+    if(el('voice-toggle'))el('voice-toggle').textContent='Voice on';
+    handsFreeSetButton();
+    handsFreeStatus('Hands-free ready. Start speaking when you’re ready.');
+    await startHandsFreeCapture();
+  }catch(e){
+    console.warn('Hands-free permission',e);
+    HANDSFREE.enabled=false;
+    handsFreeSetButton();
+    handsFreeStatus('Microphone permission is required for hands-free mode.');
+  }
+}
+
+async function disableHandsFree(message='Hands-free off. Push-to-talk is still available.'){
+  HANDSFREE.enabled=false;
+  stopHandsFreeCapture(true);
+  HANDSFREE.stream?.getTracks().forEach(t=>t.stop());
+  HANDSFREE.stream=null;
+  HANDSFREE.analyser=null;
+  if(HANDSFREE.audioContext){try{await HANDSFREE.audioContext.close()}catch{}}
+  HANDSFREE.audioContext=null;
+  handsFreeSetButton();
+  handsFreeStatus(message);
+}
+
+window.toggleHandsFree=async function(){HANDSFREE.enabled?await disableHandsFree():await enableHandsFree()};
+window.enableHandsFree=enableHandsFree;
+window.disableHandsFree=disableHandsFree;
+
+// Pause local listening while the buyer speaks so speakers do not feed back into the microphone.
+const handsFreeCoreSpeak=speak;
+speak=async function(text){
+  if(HANDSFREE.enabled)stopHandsFreeCapture(true);
+  const result=await handsFreeCoreSpeak(text);
+  if(HANDSFREE.enabled&&APP.currentAudio){
+    handsFreeStatus((BUYERS[APP.selectedBuyer]?.name||'Buyer')+' is speaking…');
+    const audio=APP.currentAudio,oldEnd=audio.onended;
+    audio.onended=e=>{
+      try{oldEnd?.call(audio,e)}finally{
+        if(HANDSFREE.enabled){handsFreeStatus('Listening…');setTimeout(startHandsFreeCapture,160)}
+      }
+    };
+  }else if(HANDSFREE.enabled){
+    setTimeout(startHandsFreeCapture,160);
+  }
+  return result;
+};
+
+// Manual push-to-talk remains available; using it turns hands-free off first to avoid two recorders competing.
+const handsFreeCoreToggleMic=toggleMic;
+toggleMic=async function(){
+  if(HANDSFREE.enabled)await disableHandsFree('Hands-free off. Push-to-talk active.');
+  return handsFreeCoreToggleMic();
+};
+
+// Make leaving/submitting a live practice session release the continuously open microphone.
+if(typeof endSession==='function'){
+  const handsFreeCoreEndSession=endSession;
+  endSession=async function(...args){if(HANDSFREE.enabled)await disableHandsFree('');return handsFreeCoreEndSession(...args)};
+}
+
+installHandsFreeButton();
