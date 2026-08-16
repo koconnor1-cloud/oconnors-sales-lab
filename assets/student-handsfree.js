@@ -3,6 +3,10 @@
    listen locally -> detect end of speech -> transcribe -> send -> buyer speaks -> resume listening.
    Free-practice audio remains transient and is not durably stored. */
 
+// Restore Marcus to the original natural voice baseline. Earlier deep-voice tuning
+// switched him to Onyx; Alloy was the more human-sounding original configuration.
+if(typeof BUYERS!=='undefined'&&BUYERS.marcus)BUYERS.marcus.voice='alloy';
+
 const HANDSFREE={enabled:false,stream:null,audioContext:null,analyser:null,recorder:null,chunks:[],raf:null,speechStarted:false,speechStartedAt:0,lastVoiceAt:0,processing:false,discardCurrent:false,threshold:0.028,silenceMs:900,minSpeechMs:350};
 function handsFreeButton(){return document.getElementById('handsfree-toggle')}
 function handsFreeStatus(text){const v=el('voice-status');if(v)v.textContent=text||''}
