@@ -171,6 +171,6 @@ else setTimeout(initializePasswordRecovery,0);
 
 // Load the optional instructor session drill-down after the core instructor controls.
 const instructorSessionReviewScript=document.createElement('script');
-instructorSessionReviewScript.src='assets/instructor-session-review.js';
+instructorSessionReviewScript.src='assets/instructor-session-review.js?v=20260816-analytics2';
 instructorSessionReviewScript.async=false;
 document.body.appendChild(instructorSessionReviewScript);
