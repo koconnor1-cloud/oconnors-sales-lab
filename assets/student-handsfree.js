@@ -45,3 +45,9 @@ const semanticCoreToggleMic=toggleMic;toggleMic=async function(){if(SEMANTIC_HF.
 if(typeof endSession==='function'){const semanticCoreEndSession=endSession;endSession=async function(...args){if(SEMANTIC_HF.enabled)await disableHandsFree('');return semanticCoreEndSession(...args)}}
 
 installSemanticButton();
+
+// Load assignment reliability protections after all core and hands-free wrappers exist.
+const assignmentReliabilityScript=document.createElement('script');
+assignmentReliabilityScript.src='assets/assignment-reliability.js?v=20260906-1';
+assignmentReliabilityScript.async=false;
+document.body.appendChild(assignmentReliabilityScript);
