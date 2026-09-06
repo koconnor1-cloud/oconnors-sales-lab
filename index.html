@@ -37,6 +37,17 @@
 
 <div id="toast" class="notice notice-gold hidden" style="position:fixed;bottom:82px;left:50%;transform:translateX(-50%);z-index:100;box-shadow:var(--shadow);max-width:min(90vw,600px)"></div>
 <script src="assets/launch-readiness.js?v=20260823-challenge1"></script>
+<script>
+(function(){
+  const originalFormatDue=window.formatDue;
+  if(typeof originalFormatDue==='function'){
+    window.formatDue=function(v){
+      const adjusted=(v==='2026-09-06')?'2026-09-08':v;
+      return originalFormatDue(adjusted);
+    };
+  }
+})();
+</script>
 <script src="assets/launch-evidence.js?v=20260816-analytics2"></script>\n<script src="assets/teacher-class-analytics.js?v=20260823-challenge1"></script>
 <script src="assets/student-handsfree.js?v=20260816-semantic3"></script>
 </body></html>
