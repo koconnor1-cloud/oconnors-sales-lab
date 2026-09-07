@@ -1,6 +1,6 @@
-/* Assignment reliability patch — September 6, 2026.
+/* Assignment reliability patch — September 7, 2026.
    Protects formal attempts from duplicate saves and AI-service failures,
-   uses the existing client_submission_id idempotency constraint, and keeps
+   preserves a completed graded session if recording upload fails, and keeps
    the student dashboard's formal-attempt display consistent with Assignments. */
 
 (function installAssignmentReliability(){
@@ -11,7 +11,17 @@
     return 'sl-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2)+'-'+Math.random().toString(36).slice(2);
   }
 
+  async function flagRecordingIssue(sessionId,issue){
+    try{
+      const {error}=await SB.rpc('flag_assignment_recording_issue',{p_session_id:sessionId,p_issue:issue||'recording_upload_failed'});
+      if(error)console.warn('Could not flag assignment recording issue',error);
+    }catch(err){
+      console.warn('Could not flag assignment recording issue',err);
+    }
+  }
+
   APP.assignmentTechnicalFailure=false;
+  APP.assignmentUploadWarning=null;
   APP.clientSubmissionId=APP.clientSubmissionId||newSubmissionId();
   APP.sessionSaveInFlight=false;
 
@@ -19,6 +29,7 @@
   resetSession=function(...args){
     const result=reliabilityCoreResetSession(...args);
     APP.assignmentTechnicalFailure=false;
+    APP.assignmentUploadWarning=null;
     APP.clientSubmissionId=newSubmissionId();
     APP.sessionSaveInFlight=false;
     return result;
@@ -83,6 +94,56 @@
     return q.data;
   };
 
+  /* A completed assignment session is the authoritative save. Recording upload is
+     a secondary artifact. Never delete a valid score/transcript just because the
+     large video transfer fails after the database insert. */
+  if(typeof uploadAssignmentVideo==='function'){
+    uploadAssignmentVideo=async function(sessionId,v){
+      if(!v?.blob)return true;
+      if(v.blob.size>150*1024*1024){
+        APP.assignmentUploadWarning='Your score and transcript were saved, but the recording was too large to upload. The issue was flagged for your instructor.';
+        await flagRecordingIssue(sessionId,'recording_too_large');
+        return false;
+      }
+
+      const ext=v.mimeType.includes('mp4')?'mp4':'webm';
+      const path=`${APP.user.id}/${sessionId}/assignment-video.${ext}`;
+      const up=await SB.storage.from('assignment-videos').upload(path,v.blob,{contentType:v.mimeType});
+      if(up.error){
+        APP.assignmentUploadWarning='Your score and transcript were saved, but the recording upload failed. The issue was flagged for your instructor; you do not need to repeat the attempt unless asked.';
+        await flagRecordingIssue(sessionId,'recording_upload_failed');
+        console.warn('Assignment recording upload failed',up.error);
+        return false;
+      }
+
+      let row=await SB.from('session_videos').insert({session_id:sessionId,assignment_id:APP.activeAssignment,student_id:APP.user.id,storage_path:path,mime_type:v.mimeType,size_bytes:v.blob.size,duration_seconds:v.durationSeconds,consented_at:v.consentedAt});
+      if(row.error){
+        await new Promise(resolve=>setTimeout(resolve,500));
+        row=await SB.from('session_videos').insert({session_id:sessionId,assignment_id:APP.activeAssignment,student_id:APP.user.id,storage_path:path,mime_type:v.mimeType,size_bytes:v.blob.size,duration_seconds:v.durationSeconds,consented_at:v.consentedAt});
+      }
+      if(row.error){
+        APP.assignmentUploadWarning='Your score and transcript were saved, but the recording could not be linked to the attempt. The issue was flagged for your instructor.';
+        await flagRecordingIssue(sessionId,'recording_metadata_failed');
+        try{await SB.storage.from('assignment-videos').remove([path])}catch(err){console.warn('Could not clean up unlinked recording',err)}
+        console.warn('Assignment recording metadata failed',row.error);
+        return false;
+      }
+      return true;
+    };
+  }
+
+  const reliabilityCoreShowSavedReport=showSavedReport;
+  showSavedReport=async function(id){
+    await reliabilityCoreShowSavedReport(id);
+    if(APP.assignmentUploadWarning){
+      const warning=APP.assignmentUploadWarning;
+      const status=el('report-status');
+      if(status)status.textContent='Score saved — recording upload issue flagged for instructor';
+      toast(warning);
+      APP.assignmentUploadWarning=null;
+    }
+  };
+
   const reliabilityCoreEndSession=endSession;
   endSession=async function(...args){
     if(APP.sessionSaveInFlight)return;
@@ -102,7 +163,7 @@
     if(!APP.user)return;
     el('student-name').textContent=(APP.profile?.full_name||'Student').split(' ')[0];
     const [sr,ar]=await Promise.all([
-      SB.from('sessions').select('overall_score,duration_seconds,created_at,assignment_id').eq('student_id',APP.user.id).order('created_at',{ascending:false}),
+      SB.from('sessions').select('overall_score,duration_seconds,created_at,assignment_id,grading_status,review_flags').eq('student_id',APP.user.id).order('created_at',{ascending:false}),
       SB.from('assignments').select('*').eq('active',true).order('due_date',{ascending:true}).limit(2)
     ]);
     const sessions=sr.data||[],scores=sessions.map(s=>Number(s.overall_score)).filter(Number.isFinite);
