@@ -1,7 +1,8 @@
-/* Assignment reliability patch — September 7, 2026.
+/* Assignment reliability patch — September 8, 2026.
    Protects formal attempts from duplicate saves and AI-service failures,
-   preserves a completed graded session if recording upload fails, and keeps
-   the student dashboard's formal-attempt display consistent with Assignments. */
+   preserves a completed graded session if recording upload fails, keeps the
+   student dashboard consistent, and uses the stable live coaching score as
+   the authoritative student-visible assignment score. */
 
 (function installAssignmentReliability(){
   if(typeof APP==='undefined'||typeof SB==='undefined'||typeof saveSessionCompatible!=='function')return;
@@ -60,25 +61,45 @@
       throw new Error('The AI service was interrupted during this formal assignment. This attempt was not counted. Please try again.');
     }
 
+    /* The live coaching engine is the same scoring path students use in practice.
+       Preserve that score for the formal assignment. The full-conversation rubric
+       pass is retained as instructor evidence/audit only and must never overwrite
+       the student-visible score. */
+    const rawLiveScore=Number(base.overall_score);
     let evaluation;
     try{
-      toast('Reviewing the complete conversation against the course rubric…');
+      toast('Saving your score and reviewing the conversation for instructor feedback…');
       evaluation=await evaluateCompleteConversation(base);
     }catch(err){
-      console.error('Evidence scoring unavailable',err);
-      if(APP.activeAssignment){
-        throw new Error('The AI grading service was unavailable. This formal attempt was not counted. Please try again.');
-      }
-      evaluation={recommended_score:base.overall_score??0,confidence:0,criteria:[],strengths:[],priority_improvement:'Instructor review required because evidence scoring was unavailable.',flags:['scoring_unavailable']};
+      console.error('Evidence review unavailable',err);
+      evaluation={recommended_score:Number.isFinite(rawLiveScore)?rawLiveScore:0,confidence:0,criteria:[],strengths:[],priority_improvement:'Instructor review required because the post-session evidence review was unavailable.',flags:['scoring_unavailable']};
     }
 
-    base.overall_score=evaluation.recommended_score;
+    const rawAuditScore=Number(evaluation?.recommended_score);
+    const authoritativeScore=Number.isFinite(rawLiveScore)
+      ? Math.max(0,Math.min(100,Math.round(rawLiveScore)))
+      : Number.isFinite(rawAuditScore)
+        ? Math.max(0,Math.min(100,Math.round(rawAuditScore)))
+        : 0;
+    const auditScore=Number.isFinite(rawAuditScore)?Math.max(0,Math.min(100,Math.round(rawAuditScore))):null;
+    const reviewFlags=Array.isArray(evaluation?.flags)?[...evaluation.flags]:[];
+    if(auditScore!==null&&Math.abs(authoritativeScore-auditScore)>=15&&!reviewFlags.includes('post_session_score_variance')){
+      reviewFlags.push('post_session_score_variance');
+    }
+    const scoringEvidence={
+      ...(evaluation||{}),
+      post_session_audit_score:auditScore,
+      student_visible_score:authoritativeScore,
+      scoring_policy:'live_score_authoritative_v1'
+    };
+
+    base.overall_score=authoritativeScore;
     if(APP.activeAssignment){
       APP.clientSubmissionId=APP.clientSubmissionId||newSubmissionId();
       base.client_submission_id=APP.clientSubmissionId;
     }
 
-    const enhanced={...base,scoring_version:'evidence-v1',recommended_score:evaluation.recommended_score,scoring_confidence:evaluation.confidence,scoring_evidence:evaluation,review_flags:evaluation.flags,grading_status:APP.activeAssignment?'awaiting_instructor':'competition_evidence'};
+    const enhanced={...base,scoring_version:'live-score-v1',recommended_score:authoritativeScore,scoring_confidence:Number(evaluation?.confidence)||0,scoring_evidence:scoringEvidence,review_flags:reviewFlags,grading_status:APP.activeAssignment?'awaiting_instructor':'competition_evidence'};
     let q=await SB.from('sessions').insert(enhanced).select('id').single();
     if(!q.error)return q.data;
 
@@ -177,5 +198,5 @@
   };
 
   const scoreLabel=document.querySelector('#arena-page .score-big span');
-  if(scoreLabel)scoreLabel.textContent='Live coaching score (provisional)';
+  if(scoreLabel)scoreLabel.textContent='Current score';
 })();
