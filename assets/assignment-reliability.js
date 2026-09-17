@@ -1,8 +1,8 @@
-/* Assignment reliability patch — September 8, 2026.
+/* Assignment reliability + scoring alignment patch — September 17, 2026.
    Protects formal attempts from duplicate saves and AI-service failures,
-   preserves a completed graded session if recording upload fails, keeps the
-   student dashboard consistent, and uses the stable live coaching score as
-   the authoritative student-visible assignment score. */
+   preserves completed graded sessions if recording upload fails, and makes
+   practice and formal assignments use the same full-conversation rubric for
+   the final student-visible score. Live turn-by-turn coaching remains formative. */
 
 (function installAssignmentReliability(){
   if(typeof APP==='undefined'||typeof SB==='undefined'||typeof saveSessionCompatible!=='function')return;
@@ -19,6 +19,20 @@
     }catch(err){
       console.warn('Could not flag assignment recording issue',err);
     }
+  }
+
+  function clampScore(v){
+    const n=Number(v);
+    return Number.isFinite(n)?Math.max(0,Math.min(100,Math.round(n))):null;
+  }
+
+  function finalFeedback(evaluation){
+    const strengths=Array.isArray(evaluation?.strengths)?evaluation.strengths.filter(Boolean):[];
+    const improvement=String(evaluation?.priority_improvement||'').trim();
+    const parts=[];
+    if(strengths.length)parts.push('Strengths: '+strengths.slice(0,2).join('; '));
+    if(improvement)parts.push('Priority improvement: '+improvement);
+    return parts.join(' ');
   }
 
   APP.assignmentTechnicalFailure=false;
@@ -46,51 +60,48 @@
     }
   };
 
-  const reliabilityPracticeSave=(typeof basicSaveSessionCompatible==='function')?basicSaveSessionCompatible:null;
   saveSessionCompatible=async function(base){
-    if(!APP.activeAssignment&&!APP.activeCompetitionRound){
-      if(reliabilityPracticeSave)return reliabilityPracticeSave(base);
-      const q=await SB.from('sessions').insert(base).select('id').single();
-      if(q.error)throw q.error;
-      return q.data;
-    }
-
     if(APP.activeCompetitionRound)base.competition_round_id=APP.activeCompetitionRound.id;
 
     if(APP.activeAssignment&&APP.assignmentTechnicalFailure){
       throw new Error('The AI service was interrupted during this formal assignment. This attempt was not counted. Please try again.');
     }
 
-    /* The live coaching engine is the same scoring path students use in practice.
-       Preserve that score for the formal assignment. The full-conversation rubric
-       pass is retained as instructor evidence/audit only and must never overwrite
-       the student-visible score. */
-    const rawLiveScore=Number(base.overall_score);
+    const liveScore=clampScore(base.overall_score);
     let evaluation;
     try{
-      toast('Saving your score and reviewing the conversation for instructor feedback…');
+      toast(APP.activeAssignment
+        ? 'Scoring the complete conversation with the assignment rubric…'
+        : 'Scoring the complete practice conversation with the same rubric used for assignments…');
       evaluation=await evaluateCompleteConversation(base);
     }catch(err){
-      console.error('Evidence review unavailable',err);
-      evaluation={recommended_score:Number.isFinite(rawLiveScore)?rawLiveScore:0,confidence:0,criteria:[],strengths:[],priority_improvement:'Instructor review required because the post-session evidence review was unavailable.',flags:['scoring_unavailable']};
+      console.error('Full-conversation rubric scoring unavailable',err);
+      if(APP.activeAssignment){
+        throw new Error('Final rubric scoring was interrupted. This formal attempt was not counted. Please try again.');
+      }
+      evaluation={
+        recommended_score:liveScore??0,
+        confidence:0,
+        criteria:[],
+        strengths:[],
+        priority_improvement:'Full-conversation scoring was temporarily unavailable; this practice score used the live coaching fallback.',
+        flags:['scoring_unavailable']
+      };
     }
 
-    const rawAuditScore=Number(evaluation?.recommended_score);
-    const authoritativeScore=Number.isFinite(rawLiveScore)
-      ? Math.max(0,Math.min(100,Math.round(rawLiveScore)))
-      : Number.isFinite(rawAuditScore)
-        ? Math.max(0,Math.min(100,Math.round(rawAuditScore)))
-        : 0;
-    const auditScore=Number.isFinite(rawAuditScore)?Math.max(0,Math.min(100,Math.round(rawAuditScore))):null;
+    const rubricScore=clampScore(evaluation?.recommended_score);
+    const authoritativeScore=rubricScore??liveScore??0;
     const reviewFlags=Array.isArray(evaluation?.flags)?[...evaluation.flags]:[];
-    if(auditScore!==null&&Math.abs(authoritativeScore-auditScore)>=15&&!reviewFlags.includes('post_session_score_variance')){
-      reviewFlags.push('post_session_score_variance');
+    if(liveScore!==null&&rubricScore!==null&&Math.abs(liveScore-rubricScore)>=15&&!reviewFlags.includes('live_rubric_score_variance')){
+      reviewFlags.push('live_rubric_score_variance');
     }
+
     const scoringEvidence={
       ...(evaluation||{}),
-      post_session_audit_score:auditScore,
+      live_coaching_score:liveScore,
+      final_rubric_score:authoritativeScore,
       student_visible_score:authoritativeScore,
-      scoring_policy:'live_score_authoritative_v1'
+      scoring_policy:'full_conversation_rubric_v2'
     };
 
     base.overall_score=authoritativeScore;
@@ -99,7 +110,17 @@
       base.client_submission_id=APP.clientSubmissionId;
     }
 
-    const enhanced={...base,scoring_version:'live-score-v1',recommended_score:authoritativeScore,scoring_confidence:Number(evaluation?.confidence)||0,scoring_evidence:scoringEvidence,review_flags:reviewFlags,grading_status:APP.activeAssignment?'awaiting_instructor':'competition_evidence'};
+    const enhanced={
+      ...base,
+      ai_feedback:finalFeedback(evaluation)||base.ai_feedback||null,
+      scoring_version:'full-conversation-rubric-v2',
+      recommended_score:authoritativeScore,
+      scoring_confidence:Number(evaluation?.confidence)||0,
+      scoring_evidence:scoringEvidence,
+      review_flags:reviewFlags,
+      grading_status:APP.activeAssignment?'awaiting_instructor':APP.activeCompetitionRound?'competition_evidence':'practice_feedback'
+    };
+
     let q=await SB.from('sessions').insert(enhanced).select('id').single();
     if(!q.error)return q.data;
 
@@ -109,10 +130,7 @@
       if(!existing.error&&existing.data?.id)return existing.data;
     }
 
-    if(APP.activeAssignment)throw new Error(msg||'The formal assignment could not be submitted.');
-    q=await SB.from('sessions').insert(base).select('id').single();
-    if(q.error)throw q.error;
-    return q.data;
+    throw new Error(msg||'The session could not be submitted.');
   };
 
   /* A completed assignment session is the authoritative save. Recording upload is
@@ -156,9 +174,12 @@
   const reliabilityCoreShowSavedReport=showSavedReport;
   showSavedReport=async function(id){
     await reliabilityCoreShowSavedReport(id);
+    const status=el('report-status');
+    if(status&&!APP.assignmentUploadWarning){
+      status.textContent=APP.activeAssignment?'Final score uses the complete assignment rubric':'Final score uses the same complete rubric as graded assignments';
+    }
     if(APP.assignmentUploadWarning){
       const warning=APP.assignmentUploadWarning;
-      const status=el('report-status');
       if(status)status.textContent='Score saved — recording upload issue flagged for instructor';
       toast(warning);
       APP.assignmentUploadWarning=null;
@@ -171,7 +192,7 @@
     APP.sessionSaveInFlight=true;
     const button=document.querySelector('#arena-page .btn-danger');
     const oldText=button?.textContent;
-    if(button){button.disabled=true;button.textContent='Saving…'}
+    if(button){button.disabled=true;button.textContent='Saving & scoring…'}
     try{
       return await reliabilityCoreEndSession(...args);
     }finally{
@@ -198,5 +219,5 @@
   };
 
   const scoreLabel=document.querySelector('#arena-page .score-big span');
-  if(scoreLabel)scoreLabel.textContent='Current score';
+  if(scoreLabel)scoreLabel.textContent='Live coaching score';
 })();
