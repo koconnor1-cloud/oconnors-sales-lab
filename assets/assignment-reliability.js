@@ -67,6 +67,10 @@
       throw new Error('The AI service was interrupted during this formal assignment. This attempt was not counted. Please try again.');
     }
 
+    if(APP.activeAssignment&&Number(base.turn_count||0)<1){
+      throw new Error('No student response was captured. This formal attempt was not counted. Please try again.');
+    }
+
     const liveScore=clampScore(base.overall_score);
     let evaluation;
     try{
