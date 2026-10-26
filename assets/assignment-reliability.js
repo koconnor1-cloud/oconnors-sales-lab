@@ -1,4 +1,4 @@
-/* Assignment reliability + scoring alignment patch — September 17, 2026.
+/* Assignment reliability + scoring alignment patch — October 25, 2026.
    Protects formal attempts from duplicate saves and AI-service failures,
    preserves completed graded sessions if recording upload fails, and makes
    practice and formal assignments use the same full-conversation rubric for
@@ -39,6 +39,64 @@
   APP.assignmentUploadWarning=null;
   APP.clientSubmissionId=APP.clientSubmissionId||newSubmissionId();
   APP.sessionSaveInFlight=false;
+  APP.lockedAssignmentConfig=APP.lockedAssignmentConfig||null;
+
+  function syncAssignmentLockUI(){
+    const locked=!!APP.activeAssignment;
+    document.querySelectorAll('.scenario-card,.buyer-card').forEach(button=>{button.disabled=locked;});
+    const contextSelect=el('context-select');
+    if(contextSelect)contextSelect.disabled=locked;
+  }
+
+  const reliabilityCoreRenderScenarioCards=renderScenarioCards;
+  renderScenarioCards=function(...args){
+    const result=reliabilityCoreRenderScenarioCards(...args);
+    syncAssignmentLockUI();
+    return result;
+  };
+
+  const reliabilityCoreStartAssignment=startAssignment;
+  startAssignment=async function(id,scenario,buyer,product){
+    const result=await reliabilityCoreStartAssignment(id,scenario,buyer,product);
+    if(APP.activeAssignment===id){
+      APP.lockedAssignmentConfig={id,scenario,buyer,product};
+      APP.selectedScenario=scenario;
+      APP.selectedBuyer=buyer;
+      const contextKey=Object.keys(CONTEXTS).find(k=>CONTEXTS[k]===product);
+      if(contextKey&&el('context-select'))el('context-select').value=contextKey;
+      renderScenarioCards();
+      updateBriefPreview();
+      syncAssignmentLockUI();
+      toast('Formal assignment loaded. Scenario, buyer, and context are locked for this attempt.');
+    }
+    return result;
+  };
+
+  const reliabilityCoreChooseScenario=chooseScenario;
+  chooseScenario=function(k){
+    if(APP.activeAssignment&&APP.lockedAssignmentConfig&&k!==APP.lockedAssignmentConfig.scenario){
+      toast('This formal assignment is locked to '+(SCENARIOS[APP.lockedAssignmentConfig.scenario]?.name||APP.lockedAssignmentConfig.scenario)+'. Use free practice for another scenario.');
+      return;
+    }
+    return reliabilityCoreChooseScenario(k);
+  };
+
+  const reliabilityCoreChooseBuyer=chooseBuyer;
+  chooseBuyer=function(k){
+    if(APP.activeAssignment&&APP.lockedAssignmentConfig&&k!==APP.lockedAssignmentConfig.buyer){
+      toast('The buyer is fixed for this formal assignment.');
+      return;
+    }
+    return reliabilityCoreChooseBuyer(k);
+  };
+
+  const reliabilityCoreStartFreePractice=startFreePractice;
+  startFreePractice=function(...args){
+    APP.lockedAssignmentConfig=null;
+    const result=reliabilityCoreStartFreePractice(...args);
+    syncAssignmentLockUI();
+    return result;
+  };
 
   const reliabilityCoreResetSession=resetSession;
   resetSession=function(...args){
@@ -62,6 +120,30 @@
 
   saveSessionCompatible=async function(base){
     if(APP.activeCompetitionRound)base.competition_round_id=APP.activeCompetitionRound.id;
+
+    let assignmentMismatchSavedAsPractice=false;
+    if(APP.activeAssignment){
+      const assignmentCheck=await SB.from('assignments')
+        .select('id,title,scenario,character_id,product,active,published')
+        .eq('id',APP.activeAssignment)
+        .maybeSingle();
+      if(assignmentCheck.error||!assignmentCheck.data){
+        throw new Error('The formal assignment could not be verified. This attempt was not counted. Please refresh and try again.');
+      }
+      const expected=assignmentCheck.data;
+      if(!expected.active||!expected.published){
+        throw new Error('This formal assignment is no longer open. This attempt was not counted.');
+      }
+      if(base.scenario!==expected.scenario){
+        assignmentMismatchSavedAsPractice=true;
+        base.assignment_id=null;
+        base.client_submission_id=null;
+        APP.activeAssignment=null;
+        APP.lockedAssignmentConfig=null;
+        syncAssignmentLockUI();
+        APP.assignmentUploadWarning='Your score was saved as practice because the selected scenario did not match the formal assignment. No formal attempt was used.';
+      }
+    }
 
     if(APP.activeAssignment&&APP.assignmentTechnicalFailure){
       throw new Error('The AI service was interrupted during this formal assignment. This attempt was not counted. Please try again.');
@@ -96,6 +178,9 @@
     const rubricScore=clampScore(evaluation?.recommended_score);
     const authoritativeScore=rubricScore??liveScore??0;
     const reviewFlags=Array.isArray(evaluation?.flags)?[...evaluation.flags]:[];
+    if(assignmentMismatchSavedAsPractice&&!reviewFlags.includes('assignment_configuration_mismatch_saved_as_practice')){
+      reviewFlags.push('assignment_configuration_mismatch_saved_as_practice');
+    }
     if(liveScore!==null&&rubricScore!==null&&Math.abs(liveScore-rubricScore)>=15&&!reviewFlags.includes('live_rubric_score_variance')){
       reviewFlags.push('live_rubric_score_variance');
     }
@@ -201,6 +286,8 @@
       return await reliabilityCoreEndSession(...args);
     }finally{
       APP.sessionSaveInFlight=false;
+      if(!APP.activeAssignment)APP.lockedAssignmentConfig=null;
+      syncAssignmentLockUI();
       if(button){button.disabled=false;button.textContent=oldText||'End & save'}
     }
   };
