@@ -40,9 +40,10 @@
   APP.clientSubmissionId=APP.clientSubmissionId||newSubmissionId();
   APP.sessionSaveInFlight=false;
   APP.lockedAssignmentConfig=APP.lockedAssignmentConfig||null;
+  APP.lockedCompetitionConfig=APP.lockedCompetitionConfig||null;
 
   function syncAssignmentLockUI(){
-    const locked=!!APP.activeAssignment;
+    const locked=!!APP.activeAssignment||!!APP.activeCompetitionRound;
     document.querySelectorAll('.scenario-card,.buyer-card').forEach(button=>{button.disabled=locked;});
     const contextSelect=el('context-select');
     if(contextSelect)contextSelect.disabled=locked;
@@ -72,10 +73,30 @@
     return result;
   };
 
+  const reliabilityCoreStartShowdown=startShowdown;
+  startShowdown=async function(id){
+    const result=await reliabilityCoreStartShowdown(id);
+    if(APP.activeCompetitionRound?.id===id){
+      const r=APP.activeCompetitionRound;
+      APP.lockedCompetitionConfig={id:r.id,scenario:r.scenario,buyer:r.character_id||'patricia',product:r.product};
+      APP.selectedScenario=r.scenario;
+      APP.selectedBuyer=r.character_id||'patricia';
+      renderScenarioCards();
+      updateBriefPreview();
+      syncAssignmentLockUI();
+      toast('Official Showdown attempt loaded. Scenario, buyer, and context are locked.');
+    }
+    return result;
+  };
+
   const reliabilityCoreChooseScenario=chooseScenario;
   chooseScenario=function(k){
     if(APP.activeAssignment&&APP.lockedAssignmentConfig&&k!==APP.lockedAssignmentConfig.scenario){
       toast('This formal assignment is locked to '+(SCENARIOS[APP.lockedAssignmentConfig.scenario]?.name||APP.lockedAssignmentConfig.scenario)+'. Use free practice for another scenario.');
+      return;
+    }
+    if(APP.activeCompetitionRound&&APP.lockedCompetitionConfig&&k!==APP.lockedCompetitionConfig.scenario){
+      toast('This Showdown round is locked to '+(SCENARIOS[APP.lockedCompetitionConfig.scenario]?.name||APP.lockedCompetitionConfig.scenario)+'.');
       return;
     }
     return reliabilityCoreChooseScenario(k);
@@ -87,12 +108,17 @@
       toast('The buyer is fixed for this formal assignment.');
       return;
     }
+    if(APP.activeCompetitionRound&&APP.lockedCompetitionConfig&&k!==APP.lockedCompetitionConfig.buyer){
+      toast('The buyer is fixed for this Showdown round.');
+      return;
+    }
     return reliabilityCoreChooseBuyer(k);
   };
 
   const reliabilityCoreStartFreePractice=startFreePractice;
   startFreePractice=function(...args){
     APP.lockedAssignmentConfig=null;
+    APP.lockedCompetitionConfig=null;
     const result=reliabilityCoreStartFreePractice(...args);
     syncAssignmentLockUI();
     return result;
@@ -113,7 +139,7 @@
     try{
       return await reliabilityCoreCallAI(type,payload);
     }catch(err){
-      if(APP.activeAssignment&&(type==='chat'||type==='transcribe'))APP.assignmentTechnicalFailure=true;
+      if((APP.activeAssignment||APP.activeCompetitionRound)&&(type==='chat'||type==='transcribe'))APP.assignmentTechnicalFailure=true;
       throw err;
     }
   };
@@ -122,6 +148,7 @@
     if(APP.activeCompetitionRound)base.competition_round_id=APP.activeCompetitionRound.id;
 
     let assignmentMismatchSavedAsPractice=false;
+    let competitionMismatchSavedAsPractice=false;
     if(APP.activeAssignment){
       const assignmentCheck=await SB.from('assignments')
         .select('id,title,scenario,character_id,product,active,published')
@@ -145,25 +172,54 @@
       }
     }
 
-    if(APP.activeAssignment&&APP.assignmentTechnicalFailure){
+    if(APP.activeCompetitionRound){
+      const roundCheck=await SB.from('competition_rounds')
+        .select('id,competition_id,scenario,character_id,product,status,opens_at')
+        .eq('id',APP.activeCompetitionRound.id)
+        .maybeSingle();
+      if(roundCheck.error||!roundCheck.data){
+        throw new Error('The Showdown round could not be verified. This attempt was not counted. Please refresh and try again.');
+      }
+      const expectedRound=roundCheck.data;
+      const compCheck=await SB.from('competitions')
+        .select('id,status')
+        .eq('id',expectedRound.competition_id)
+        .maybeSingle();
+      if(compCheck.error||!compCheck.data||compCheck.data.status!=='active'||expectedRound.status!=='open'||!expectedRound.opens_at){
+        throw new Error('This Showdown round is not currently open. This attempt was not counted.');
+      }
+      if(base.scenario!==expectedRound.scenario||base.character_id!==(expectedRound.character_id||base.character_id)||base.product!==expectedRound.product){
+        competitionMismatchSavedAsPractice=true;
+        base.competition_round_id=null;
+        base.client_submission_id=null;
+        APP.activeCompetitionRound=null;
+        APP.lockedCompetitionConfig=null;
+        syncAssignmentLockUI();
+        APP.assignmentUploadWarning='Your score was saved as practice because the session configuration did not match the official Showdown round. No official Showdown entry was used.';
+      }
+    }
+
+    if((APP.activeAssignment||APP.activeCompetitionRound)&&APP.assignmentTechnicalFailure){
       throw new Error('The AI service was interrupted during this formal assignment. This attempt was not counted. Please try again.');
     }
 
-    if(APP.activeAssignment&&Number(base.turn_count||0)<1){
-      throw new Error('No student response was captured. This formal attempt was not counted. Please try again.');
+    if((APP.activeAssignment||APP.activeCompetitionRound)&&Number(base.turn_count||0)<1){
+      throw new Error('No student response was captured. This official attempt was not counted. Please try again.');
     }
 
     const liveScore=clampScore(base.overall_score);
     let evaluation;
     try{
-      toast(APP.activeAssignment
-        ? 'Scoring the complete conversation with the assignment rubric…'
-        : 'Scoring the complete practice conversation with the same rubric used for assignments…');
+      toast(APP.activeCompetitionRound
+        ? 'Scoring the complete Showdown performance with the round rubric…'
+        : APP.activeAssignment
+          ? 'Scoring the complete conversation with the assignment rubric…'
+          : 'Scoring the complete practice conversation with the same rubric used for assignments…');
       evaluation=await evaluateCompleteConversation(base);
     }catch(err){
       console.error('Full-conversation rubric scoring unavailable',err);
-      if(APP.activeAssignment){
-        throw new Error('Final rubric scoring was interrupted. This formal attempt was not counted. Please try again.');
+      if(APP.activeAssignment||APP.activeCompetitionRound){
+        throw new Error('Final rubric scoring was interrupted. This official attempt was not counted. Please try again.');
       }
       evaluation={
         recommended_score:liveScore??0,
@@ -181,6 +237,9 @@
     if(assignmentMismatchSavedAsPractice&&!reviewFlags.includes('assignment_configuration_mismatch_saved_as_practice')){
       reviewFlags.push('assignment_configuration_mismatch_saved_as_practice');
     }
+    if(competitionMismatchSavedAsPractice&&!reviewFlags.includes('showdown_configuration_mismatch_saved_as_practice')){
+      reviewFlags.push('showdown_configuration_mismatch_saved_as_practice');
+    }
     if(liveScore!==null&&rubricScore!==null&&Math.abs(liveScore-rubricScore)>=15&&!reviewFlags.includes('live_rubric_score_variance')){
       reviewFlags.push('live_rubric_score_variance');
     }
@@ -194,7 +253,7 @@
     };
 
     base.overall_score=authoritativeScore;
-    if(APP.activeAssignment){
+    if(APP.activeAssignment||APP.activeCompetitionRound){
       APP.clientSubmissionId=APP.clientSubmissionId||newSubmissionId();
       base.client_submission_id=APP.clientSubmissionId;
     }
@@ -216,6 +275,10 @@
     const msg=String(q.error.message||'');
     if(APP.activeAssignment&&base.client_submission_id&&/duplicate key|sessions_formal_submission_idempotency_idx/i.test(msg)){
       const existing=await SB.from('sessions').select('id').eq('student_id',APP.user.id).eq('assignment_id',APP.activeAssignment).eq('client_submission_id',base.client_submission_id).maybeSingle();
+      if(!existing.error&&existing.data?.id)return existing.data;
+    }
+    if(APP.activeCompetitionRound&&base.client_submission_id&&/duplicate key|sessions_showdown_submission_idempotency_idx/i.test(msg)){
+      const existing=await SB.from('sessions').select('id').eq('student_id',APP.user.id).eq('competition_round_id',APP.activeCompetitionRound.id).eq('client_submission_id',base.client_submission_id).maybeSingle();
       if(!existing.error&&existing.data?.id)return existing.data;
     }
 
@@ -269,7 +332,7 @@
     }
     if(APP.assignmentUploadWarning){
       const warning=APP.assignmentUploadWarning;
-      if(status)status.textContent='Score saved — recording upload issue flagged for instructor';
+      if(status)status.textContent='Score saved — attention item noted for instructor';
       toast(warning);
       APP.assignmentUploadWarning=null;
     }
@@ -287,6 +350,7 @@
     }finally{
       APP.sessionSaveInFlight=false;
       if(!APP.activeAssignment)APP.lockedAssignmentConfig=null;
+      if(!APP.activeCompetitionRound)APP.lockedCompetitionConfig=null;
       syncAssignmentLockUI();
       if(button){button.disabled=false;button.textContent=oldText||'End & save'}
     }
