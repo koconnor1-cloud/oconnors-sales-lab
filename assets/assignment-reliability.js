@@ -399,7 +399,7 @@
   if(scoreLabel)scoreLabel.textContent='Live coaching score';
 
   const access360Script=document.createElement('script');
-  access360Script.src='assets/access360-showdown.js?v=20261101-access360-1';
+  access360Script.src='assets/access360-showdown.js?v=20261101-access360-2';
   access360Script.async=false;
   document.body.appendChild(access360Script);
 })();
