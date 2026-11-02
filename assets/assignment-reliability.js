@@ -174,7 +174,7 @@
 
     if(APP.activeCompetitionRound){
       const roundCheck=await SB.from('competition_rounds')
-        .select('id,competition_id,scenario,character_id,product,status,opens_at')
+        .select('id,competition_id,scenario,character_id,product,status,opens_at,planned_open_at,planned_close_at')
         .eq('id',APP.activeCompetitionRound.id)
         .maybeSingle();
       if(roundCheck.error||!roundCheck.data){
@@ -187,6 +187,13 @@
         .maybeSingle();
       if(compCheck.error||!compCheck.data||compCheck.data.status!=='active'||expectedRound.status!=='open'||!expectedRound.opens_at){
         throw new Error('This Showdown round is not currently open. This attempt was not counted.');
+      }
+      const now=Date.now();
+      if(expectedRound.planned_open_at&&now<new Date(expectedRound.planned_open_at).getTime()){
+        throw new Error('This Showdown round has not opened yet. This attempt was not counted.');
+      }
+      if(expectedRound.planned_close_at&&now>new Date(expectedRound.planned_close_at).getTime()){
+        throw new Error('The submission window for this Showdown round has closed. This attempt was not counted.');
       }
       if(base.scenario!==expectedRound.scenario||base.character_id!==(expectedRound.character_id||base.character_id)||base.product!==expectedRound.product){
         competitionMismatchSavedAsPractice=true;
@@ -390,4 +397,9 @@
 
   const scoreLabel=document.querySelector('#arena-page .score-big span');
   if(scoreLabel)scoreLabel.textContent='Live coaching score';
+
+  const access360Script=document.createElement('script');
+  access360Script.src='assets/access360-showdown.js?v=20261101-access360-1';
+  access360Script.async=false;
+  document.body.appendChild(access360Script);
 })();
