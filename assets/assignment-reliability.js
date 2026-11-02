@@ -14,10 +14,10 @@
 
   async function flagRecordingIssue(sessionId,issue){
     try{
-      const {error}=await SB.rpc('flag_assignment_recording_issue',{p_session_id:sessionId,p_issue:issue||'recording_upload_failed'});
-      if(error)console.warn('Could not flag assignment recording issue',error);
+      const {error}=await SB.rpc('flag_official_video_issue',{p_session_id:sessionId,p_issue:issue||'video_upload_failed'});
+      if(error)console.warn('Could not flag official video issue',error);
     }catch(err){
-      console.warn('Could not flag assignment recording issue',err);
+      console.warn('Could not flag official video issue',err);
     }
   }
 
@@ -291,32 +291,47 @@
   if(typeof uploadAssignmentVideo==='function'){
     uploadAssignmentVideo=async function(sessionId,v){
       if(!v?.blob)return true;
+      const showdown=!!APP.activeCompetitionRound;
+      const label=showdown?'Showdown':'assignment';
+
       if(v.blob.size>150*1024*1024){
-        APP.assignmentUploadWarning='Your score and transcript were saved, but the recording was too large to upload. The issue was flagged for your instructor.';
-        await flagRecordingIssue(sessionId,'recording_too_large');
+        APP.assignmentUploadWarning='Your score and transcript were saved, but the '+label+' recording was too large to upload. The issue was flagged for your instructor.';
+        await flagRecordingIssue(sessionId,'video_too_large');
         return false;
       }
 
       const ext=v.mimeType.includes('mp4')?'mp4':'webm';
-      const path=`${APP.user.id}/${sessionId}/assignment-video.${ext}`;
+      const path=`${APP.user.id}/${sessionId}/official-video.${ext}`;
       const up=await SB.storage.from('assignment-videos').upload(path,v.blob,{contentType:v.mimeType});
       if(up.error){
-        APP.assignmentUploadWarning='Your score and transcript were saved, but the recording upload failed. The issue was flagged for your instructor; you do not need to repeat the attempt unless asked.';
-        await flagRecordingIssue(sessionId,'recording_upload_failed');
-        console.warn('Assignment recording upload failed',up.error);
+        APP.assignmentUploadWarning='Your score and transcript were saved, but the '+label+' recording upload failed. The issue was flagged for your instructor; you do not need to repeat the attempt unless asked.';
+        await flagRecordingIssue(sessionId,'video_upload_failed');
+        console.warn('Official recording upload failed',up.error);
         return false;
       }
 
-      let row=await SB.from('session_videos').insert({session_id:sessionId,assignment_id:APP.activeAssignment,student_id:APP.user.id,storage_path:path,mime_type:v.mimeType,size_bytes:v.blob.size,duration_seconds:v.durationSeconds,consented_at:v.consentedAt});
+      const metadata={
+        session_id:sessionId,
+        assignment_id:APP.activeAssignment||null,
+        competition_round_id:APP.activeCompetitionRound?.id||null,
+        student_id:APP.user.id,
+        storage_path:path,
+        mime_type:v.mimeType,
+        size_bytes:v.blob.size,
+        duration_seconds:v.durationSeconds,
+        consented_at:v.consentedAt
+      };
+
+      let row=await SB.from('session_videos').insert(metadata);
       if(row.error){
         await new Promise(resolve=>setTimeout(resolve,500));
-        row=await SB.from('session_videos').insert({session_id:sessionId,assignment_id:APP.activeAssignment,student_id:APP.user.id,storage_path:path,mime_type:v.mimeType,size_bytes:v.blob.size,duration_seconds:v.durationSeconds,consented_at:v.consentedAt});
+        row=await SB.from('session_videos').insert(metadata);
       }
       if(row.error){
-        APP.assignmentUploadWarning='Your score and transcript were saved, but the recording could not be linked to the attempt. The issue was flagged for your instructor.';
-        await flagRecordingIssue(sessionId,'recording_metadata_failed');
+        APP.assignmentUploadWarning='Your score and transcript were saved, but the recording could not be linked to the official attempt. The issue was flagged for your instructor.';
+        await flagRecordingIssue(sessionId,'video_metadata_failed');
         try{await SB.storage.from('assignment-videos').remove([path])}catch(err){console.warn('Could not clean up unlinked recording',err)}
-        console.warn('Assignment recording metadata failed',row.error);
+        console.warn('Official recording metadata failed',row.error);
         return false;
       }
       return true;
