@@ -301,8 +301,8 @@
       const showdown=!!APP.activeCompetitionRound;
       const label=showdown?'Showdown':'assignment';
 
-      if(v.blob.size>45*1024*1024){
-        APP.assignmentUploadWarning='Your score and transcript were saved, but the '+label+' recording was larger than the supported 45 MB upload size. The attempt and transcript are safe, and your instructor was notified.';
+      if(v.blob.size>140*1024*1024){
+        APP.assignmentUploadWarning='Your score and transcript were saved, but the '+label+' recording was larger than the supported 140 MB upload size. The attempt and transcript are safe, and your instructor was notified.';
         await flagRecordingIssue(sessionId,'video_too_large');
         return false;
       }
@@ -312,8 +312,7 @@
       const ext=mimeType==='video/mp4'?'mp4':mimeType==='video/quicktime'?'mov':'webm';
       const path=`${APP.user.id}/${sessionId}/official-video.${ext}`;
       try{
-        // The project upload limit is lower than the original recorder's 150MB check.
-        // Use six-megabyte resumable chunks for official videos instead of one large POST.
+        // Use six-megabyte resumable chunks for official videos so larger recordings avoid the standard POST request ceiling.
         if(v.blob.size>=6*1024*1024&&window.tus?.Upload){
           const {data:authData,error:authError}=await SB.auth.getSession();
           if(authError||!authData?.session?.access_token)throw new Error('Sign in again to upload the recording.');
@@ -432,7 +431,7 @@
   if(scoreLabel)scoreLabel.textContent='Live coaching score';
 
   const access360Script=document.createElement('script');
-  access360Script.src='assets/access360-showdown.js?v=20261101-access360-2';
+  access360Script.src='assets/access360-showdown.js?v=20261105-recording-1';
   access360Script.async=false;
   document.body.appendChild(access360Script);
 })();
