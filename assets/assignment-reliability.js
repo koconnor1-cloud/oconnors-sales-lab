@@ -301,19 +301,52 @@
       const showdown=!!APP.activeCompetitionRound;
       const label=showdown?'Showdown':'assignment';
 
-      if(v.blob.size>150*1024*1024){
-        APP.assignmentUploadWarning='Your score and transcript were saved, but the '+label+' recording was too large to upload. The issue was flagged for your instructor.';
+      if(v.blob.size>45*1024*1024){
+        APP.assignmentUploadWarning='Your score and transcript were saved, but the '+label+' recording was larger than the supported 45 MB upload size. The attempt and transcript are safe, and your instructor was notified.';
         await flagRecordingIssue(sessionId,'video_too_large');
         return false;
       }
 
-      const ext=v.mimeType.includes('mp4')?'mp4':'webm';
+      const sourceMime=String(v.mimeType||v.blob.type||'video/webm').split(';')[0].trim().toLowerCase();
+      const mimeType=['video/webm','video/mp4','video/quicktime'].includes(sourceMime)?sourceMime:'video/webm';
+      const ext=mimeType==='video/mp4'?'mp4':mimeType==='video/quicktime'?'mov':'webm';
       const path=`${APP.user.id}/${sessionId}/official-video.${ext}`;
-      const up=await SB.storage.from('assignment-videos').upload(path,v.blob,{contentType:v.mimeType});
-      if(up.error){
+      try{
+        // The project upload limit is lower than the original recorder's 150MB check.
+        // Use six-megabyte resumable chunks for official videos instead of one large POST.
+        if(v.blob.size>=6*1024*1024&&window.tus?.Upload){
+          const {data:authData,error:authError}=await SB.auth.getSession();
+          if(authError||!authData?.session?.access_token)throw new Error('Sign in again to upload the recording.');
+          await new Promise((resolve,reject)=>{
+            const upload=new window.tus.Upload(v.blob,{
+              endpoint:'https://yqnzdzikvtoknchpkkvl.storage.supabase.co/storage/v1/upload/resumable',
+              retryDelays:[0,2000,5000,10000],
+              headers:{authorization:'Bearer '+authData.session.access_token},
+              uploadDataDuringCreation:true,
+              removeFingerprintOnSuccess:true,
+              metadata:{bucketName:'assignment-videos',objectName:path,contentType:mimeType,cacheControl:'3600'},
+              chunkSize:6*1024*1024,
+              onError:reject,
+              onSuccess:resolve,
+              onProgress:(bytes,total)=>{
+                const button=document.querySelector('#arena-page .btn-danger');
+                if(button&&total)button.textContent='Uploading recording '+Math.round(bytes/total*100)+'%';
+              }
+            });
+            upload.findPreviousUploads().then(previous=>{
+              if(previous?.length)upload.resumeFromPreviousUpload(previous[0]);
+              upload.start();
+            }).catch(()=>upload.start());
+          });
+        }else{
+          // Short videos (or browsers where the optional TUS library cannot load).
+          const {error}=await SB.storage.from('assignment-videos').upload(path,v.blob,{contentType:mimeType,cacheControl:'3600'});
+          if(error)throw error;
+        }
+      }catch(uploadError){
         APP.assignmentUploadWarning='Your score and transcript were saved, but the '+label+' recording upload failed. The issue was flagged for your instructor; you do not need to repeat the attempt unless asked.';
         await flagRecordingIssue(sessionId,'video_upload_failed');
-        console.warn('Official recording upload failed',up.error);
+        console.warn('Official recording upload failed',uploadError);
         return false;
       }
 
@@ -323,7 +356,7 @@
         competition_round_id:APP.activeCompetitionRound?.id||null,
         student_id:APP.user.id,
         storage_path:path,
-        mime_type:v.mimeType,
+        mime_type:mimeType,
         size_bytes:v.blob.size,
         duration_seconds:v.durationSeconds,
         consented_at:v.consentedAt
