@@ -48,6 +48,6 @@ installSemanticButton();
 
 // Load assignment reliability protections after all core and hands-free wrappers exist.
 const assignmentReliabilityScript=document.createElement('script');
-assignmentReliabilityScript.src='assets/assignment-reliability.js?v=20261105-recording-1';
+assignmentReliabilityScript.src='assets/assignment-reliability.js?v=20261111-round2-1';
 assignmentReliabilityScript.async=false;
 document.body.appendChild(assignmentReliabilityScript);

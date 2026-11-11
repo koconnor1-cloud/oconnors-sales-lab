@@ -218,7 +218,7 @@
     let evaluation;
     try{
       toast(APP.activeCompetitionRound
-        ? 'Scoring the complete Showdown performance with the round rubric…'
+        ? 'Reviewing your Showdown performance…'
         : APP.activeAssignment
           ? 'Scoring the complete conversation with the assignment rubric…'
           : 'Scoring the complete practice conversation with the same rubric used for assignments…');
@@ -255,7 +255,7 @@
       ...(evaluation||{}),
       live_coaching_score:liveScore,
       final_rubric_score:authoritativeScore,
-      student_visible_score:authoritativeScore,
+      student_visible_score:APP.activeCompetitionRound?.id===ROUND2_ID?null:authoritativeScore,
       scoring_policy:'full_conversation_rubric_v2'
     };
 
@@ -381,7 +381,8 @@
   showSavedReport=async function(id){
     await reliabilityCoreShowSavedReport(id);
     const status=el('report-status');
-    if(status&&!APP.assignmentUploadWarning){
+    if(status&&APP.reportIsRound2){status.textContent='Performance saved — qualitative feedback only. Return to Showdown to check your official submission or retry before the deadline.';}
+    if(status&&!APP.reportIsRound2&&!APP.assignmentUploadWarning){
       status.textContent=APP.activeAssignment?'Final score uses the complete assignment rubric':'Final score uses the same complete rubric as graded assignments';
     }
     if(APP.assignmentUploadWarning){
@@ -414,10 +415,10 @@
     if(!APP.user)return;
     el('student-name').textContent=(APP.profile?.full_name||'Student').split(' ')[0];
     const [sr,ar]=await Promise.all([
-      SB.from('sessions').select('overall_score,duration_seconds,created_at,assignment_id,grading_status,review_flags').eq('student_id',APP.user.id).order('created_at',{ascending:false}),
+      SB.from('sessions').select('overall_score,duration_seconds,created_at,assignment_id,grading_status,review_flags,competition_round_id').eq('student_id',APP.user.id).order('created_at',{ascending:false}),
       SB.from('assignments').select('*').eq('active',true).order('due_date',{ascending:true}).limit(2)
     ]);
-    const sessions=sr.data||[],scores=sessions.map(s=>Number(s.overall_score)).filter(Number.isFinite);
+    const sessions=sr.data||[],scores=sessions.filter(s=>!isRound2Session(s)).map(s=>Number(s.overall_score)).filter(Number.isFinite);
     el('home-best').textContent=scores.length?Math.max(...scores):'—';
     el('home-attempts').textContent=sessions.length;
     el('home-time').textContent=formatMinutes(sessions.reduce((n,s)=>n+(s.duration_seconds||0),0));
@@ -431,7 +432,7 @@
   if(scoreLabel)scoreLabel.textContent='Live coaching score';
 
   const access360Script=document.createElement('script');
-  access360Script.src='assets/access360-showdown.js?v=20261105-recording-1';
+  access360Script.src='assets/access360-showdown.js?v=20261111-round2-1';
   access360Script.async=false;
   document.body.appendChild(access360Script);
 })();

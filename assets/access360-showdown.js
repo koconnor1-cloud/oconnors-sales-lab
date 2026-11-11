@@ -16,7 +16,36 @@
     if(window.ACCESS360_SHOWDOWN_INSTALLED)return;
     window.ACCESS360_SHOWDOWN_INSTALLED=true;
 
-    const ROUND_FIELD={1:'Top 16',2:'Top 8',3:'Final Four',4:'Champion'};
+    const ROUND_FIELD={1:'Round 2 qualifiers',2:'Top 8',3:'Final Four',4:'Champion'};
+
+    function round2Instructions(){
+      return `<div class="card round2-delivery-instructions"><div class="section-label">Round 2 — SPIN Discovery &amp; Needs Assessment</div><h3>Have a conversation. Do not read a script.</h3><ul style="line-height:1.7"><li><strong>No reading:</strong> Do not read prepared sentences from your screen, phone, paper, or a teleprompter. Brief keyword notes are fine; do not read them aloud.</li><li><strong>Natural eye contact:</strong> Look toward the camera while speaking, keep your face visible, and avoid looking down at notes throughout the conversation. Brief, natural glances are fine.</li><li><strong>Listen and adapt:</strong> Ask one question at a time. Let the buyer finish, respond to what they actually say, and use follow-up questions instead of reciting a question list.</li><li><strong>Use SPIN:</strong> Explore Situation, Problem, Implication, and Need-payoff. Diagnose needs before pitching, summarize what you learned, and agree on a next step.</li><li><strong>Professional delivery:</strong> Use a conversational pace and tone, clear audio, a quiet setting, and lighting that makes your face easy to see.</li><li><strong>Review and retry:</strong> No numeric score is shown. Review your recording and qualitative feedback. If you feel you could improve your performance, you may redo Round 2 before the deadline. A redo is optional. Your latest successfully submitted recording will count. Stay on the page until the upload and submission finish.</li></ul></div>`;
+    }
+    const round2CoreBrief=updateBriefPreview;
+    updateBriefPreview=function(){
+      round2CoreBrief();
+      document.getElementById('round2-preflight')?.remove();
+      if(APP.activeCompetitionRound?.id===ROUND2_ID){
+        const box=document.createElement('div');box.id='round2-preflight';box.innerHTML=round2Instructions();
+        document.querySelector('#practice-page .wrap').prepend(box);
+      }
+    };
+    const round2CoreReport=showSavedReport;
+    showSavedReport=async function(id){
+      await round2CoreReport(id);
+      document.getElementById('round2-recording-review')?.remove();
+      if(!APP.reportIsRound2)return;
+      const box=document.createElement('div');box.id='round2-recording-review';box.className='card';
+      box.innerHTML='<h3>Review your recording</h3><p>Loading your private video…</p>';
+      document.querySelector('#report-page .wrap-sm').appendChild(box);
+      const {data:v}=await SB.from('session_videos').select('storage_path').eq('session_id',id).maybeSingle();
+      if(v?.storage_path){
+        const {data,error}=await SB.storage.from('assignment-videos').createSignedUrl(v.storage_path,3600);
+        box.innerHTML=!error&&data?.signedUrl?`<h3>Review your recording</h3><video controls playsinline style="width:100%;max-height:450px" src="${escapeHtml(data.signedUrl)}"></video>`:'<p>Your video could not be loaded. Refresh and try again.</p>';
+      }else box.innerHTML='<p>No saved recording is linked to this attempt. Return to Showdown to check your official submission and retry before the deadline.</p>';
+      box.insertAdjacentHTML('beforeend','<button class="btn btn-primary" onclick="showPage(\'showdown-page\')">Return to Showdown</button>');
+    };
+
     const ROUND_SHORT={1:'Cold Call',2:'Discovery',3:'Value + Objections',4:'Executive Call'};
 
     function fmtDate(v,includeTime=true){
@@ -89,6 +118,7 @@
       const state=timeState(r);
       const mine=entries.find(e=>e.round_id===r.id&&e.student_id===APP.user.id);
       if(mine){
+        if(r.id===ROUND2_ID&&state==='open')return `<div class="assignment-tags"><span class="tag tag-green">Official recording submitted</span></div><button class="btn btn-outline btn-sm" style="margin-top:8px" onclick="startShowdown('${r.id}')">Redo Round 2</button><div class="muted" style="font-size:11px;margin-top:8px">Your latest successfully submitted recording counts. Complete any retry before the deadline.</div>`;
         const track=mine.championship_eligible?'Championship Field':'Development Track';
         return `<div class="assignment-tags" style="margin-top:8px"><span class="tag tag-green">Official entry submitted</span><span class="tag tag-gray">${track}</span></div>`;
       }
@@ -133,7 +163,7 @@
         participantCount=pc.count||27;
       }
 
-      const progression=`<div class="card" style="margin-bottom:16px"><div class="section-label">Championship progression</div><div style="display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-top:8px"><strong>${participantCount} ALL STUDENTS</strong><span>→</span><strong>16</strong><span>→</span><strong>8</strong><span>→</span><strong>4</strong><span>→</span><strong>CHAMPION</strong></div><div class="muted" style="margin-top:8px;font-size:11px">Everyone completes all four rounds. Advancement changes championship eligibility, not participation.</div></div>`;
+      const progression=`<div class="card" style="margin-bottom:16px"><div class="section-label">Championship progression</div><div style="display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-top:8px"><strong>${participantCount} ALL STUDENTS</strong><span>→</span><strong>${(rounds||[]).find(r=>r.round_number===1)?.advance_count||18}</strong><span>→</span><strong>8</strong><span>→</span><strong>4</strong><span>→</span><strong>CHAMPION</strong></div><div class="muted" style="margin-top:8px;font-size:11px">Everyone completes all four rounds. Advancement changes championship eligibility, not participation.</div></div>`;
 
       const cards=(rounds||[]).map(r=>{
         const roundEntries=(entries||[]).filter(e=>e.round_id===r.id);
@@ -145,7 +175,7 @@
         return `<div class="round ${r.status==='open'?'current':r.status==='locked'?'locked':''}"><div class="num">ROUND ${r.round_number}</div><strong>${escapeHtml(r.name)}</strong><div class="muted" style="font-size:10px;margin-top:5px">${escapeHtml(roundWindow(r))}</div><div class="muted" style="font-size:10px">${escapeHtml(scoringLabel(r))} · ${escapeHtml(ROUND_FIELD[r.round_number])}</div>${meta}${APP.role==='teacher'?showdownControls(r):studentShowdownControl(r,entries||[],rounds||[])}</div>`;
       }).join('');
 
-      host.innerHTML=`<div class="notice notice-green"><strong>Argonaut Access360:</strong> Students represent UWF Athletics Premium Sales and work the Reed Coastal Partners account from first contact through executive commitment.</div>${progression}<div class="showdown-grid">${cards}</div>`;
+      host.innerHTML=`${round2Instructions()}<div class="notice notice-green"><strong>Argonaut Access360:</strong> Students represent UWF Athletics Premium Sales and work the Reed Coastal Partners account from first contact through executive commitment.</div>${progression}<div class="showdown-grid">${cards}</div>`;
 
       if(APP.role==='student'){
         await renderPrivateJourney(host,rounds||[],own);
@@ -162,7 +192,8 @@
         const e=own.find(x=>x.round_id===r.id);
         if(!e)return `<tr><td>Round ${r.round_number}</td><td>${escapeHtml(ROUND_SHORT[r.round_number])}</td><td>—</td><td>Not submitted</td></tr>`;
         let score='—',status=e.championship_eligible?'Championship Field':'Development Track';
-        if(r.championship_scoring_mode==='human'&&e.championship_eligible&&e.score_source!=='judge_panel')score='Awaiting judges';
+        if(r.id===ROUND2_ID)score='Feedback only';
+        else if(r.championship_scoring_mode==='human'&&e.championship_eligible&&e.score_source!=='judge_panel')score='Awaiting judges';
         else score=e.score??'—';
         if(e.advanced)status=r.round_number===4?'Champion':ROUND_FIELD[r.round_number];
         return `<tr><td>Round ${r.round_number}</td><td>${escapeHtml(ROUND_SHORT[r.round_number])}</td><td><strong>${escapeHtml(score)}</strong></td><td>${escapeHtml(status)}</td></tr>`;
